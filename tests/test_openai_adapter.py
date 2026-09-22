@@ -5,6 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from incident_pipeline.agent import RootCauseCategory, Uncertainty, investigate
+from incident_pipeline.agent import ReportDraft as AgentReportDraft
+from incident_pipeline.contracts import ReportDraft as ContractReportDraft
 from incident_pipeline.evidence import LocalArtifactProvider
 from incident_pipeline.openai_adapter import DecisionEnvelope, FinalDecisionEnvelope, OpenAIModelAdapter
 from incident_pipeline.pipeline import generate_runs
@@ -28,6 +30,13 @@ class FakeClient:
 
 
 class OpenAIAdapterTest(unittest.TestCase):
+    def test_cli_and_adapter_share_one_contract_type(self):
+        from incident_pipeline.openai_adapter import ReportDraft as AdapterReportDraft
+
+        self.assertIs(AgentReportDraft, ContractReportDraft)
+        self.assertIs(AdapterReportDraft, ContractReportDraft)
+        self.assertEqual(ContractReportDraft.__module__, "incident_pipeline.contracts")
+
     def test_mocked_responses_api_drives_loop_without_network(self):
         client = FakeClient([
             {

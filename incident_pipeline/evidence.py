@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Iterable, Protocol
 
 import duckdb
 
@@ -129,9 +129,18 @@ def _table_columns(connection: duckdb.DuckDBPyConnection, table: str) -> list[st
 class LocalArtifactProvider:
     """Read only known generated runs; never expose general SQL or file paths."""
 
-    def __init__(self, artifacts_dir: Path = Path("artifacts")) -> None:
+    def __init__(
+        self,
+        artifacts_dir: Path = Path("artifacts"),
+        *,
+        allowed_run_ids: Iterable[str] | None = None,
+    ) -> None:
         self.artifacts_dir = Path(artifacts_dir)
-        self.allowed_runs = frozenset(run_id for run_id, _ in RUN_INPUTS)
+        self.allowed_runs = frozenset(
+            allowed_run_ids if allowed_run_ids is not None else (run_id for run_id, _ in RUN_INPUTS)
+        )
+        if not self.allowed_runs or any(not isinstance(run_id, str) or not run_id for run_id in self.allowed_runs):
+            raise ValueError("allowed_run_ids must contain non-empty strings")
         self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         self.allowed_tables = frozenset(self.contract["tables"])
 

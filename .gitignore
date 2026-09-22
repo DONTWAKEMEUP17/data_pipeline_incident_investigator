@@ -3,3 +3,12 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .DS_Store
+.env
+lessons/
+learning-records/
+reference/
+MISSION.md
+NOTES.md
+evaluation/artifacts/
+evaluation/results/*.json
+!evaluation/results/local_initial.json

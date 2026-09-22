@@ -8,7 +8,7 @@ from typing import Literal, Optional, Sequence
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .agent import (
+from .contracts import (
     EvidenceReference,
     ModelDecision,
     ReportDraft,
@@ -16,7 +16,7 @@ from .agent import (
     ToolObservation,
     ToolRequest,
     Uncertainty,
-    _jsonable,
+    jsonable as _jsonable,
 )
 
 

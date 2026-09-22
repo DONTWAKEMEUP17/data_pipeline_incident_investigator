@@ -1,0 +1,199 @@
+{
+  "benchmark": "local_incidents_v1",
+  "cases": [
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d001",
+      "split": "development",
+      "variant": "renamed amount column"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d002",
+      "split": "development",
+      "variant": "missing customer_id"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d003",
+      "split": "development",
+      "variant": "reordered columns"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_h001",
+      "split": "heldout",
+      "variant": "unexpected currency column"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d004",
+      "split": "development",
+      "variant": "one duplicate order ID"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d005",
+      "split": "development",
+      "variant": "multiple duplicate order IDs"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d006",
+      "split": "development",
+      "variant": "null amount"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_h002",
+      "split": "heldout",
+      "variant": "non-numeric amount"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d007",
+      "split": "development",
+      "variant": "one unknown customer"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d008",
+      "split": "development",
+      "variant": "multiple unknown customers"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d009",
+      "split": "development",
+      "variant": "reference key case mismatch"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_h003",
+      "split": "heldout",
+      "variant": "inactive customer reference"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d010",
+      "split": "development",
+      "variant": "input one day stale"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d011",
+      "split": "development",
+      "variant": "input one week stale"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d012",
+      "split": "development",
+      "variant": "batch below expected volume"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_h004",
+      "split": "heldout",
+      "variant": "volume drop versus prior batch"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_d013",
+      "split": "development",
+      "variant": "standard healthy batch"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_d014",
+      "split": "development",
+      "variant": "small allowed batch"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_h005",
+      "split": "heldout",
+      "variant": "larger healthy batch"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_h006",
+      "split": "heldout",
+      "variant": "zero and large amounts"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_d015",
+      "split": "development",
+      "variant": "empty batch with no upstream context"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_d016",
+      "split": "development",
+      "variant": "generic failed check"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_h007",
+      "split": "heldout",
+      "variant": "empty batch on possible holiday"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_h008",
+      "split": "heldout",
+      "variant": "conflicting saved evidence"
+    }
+  ],
+  "labels_are_not_agent_input": true,
+  "seed": 20260922
+}
