@@ -1,0 +1,21 @@
+{
+  "run_id": "healthy_001",
+  "stages": {
+    "ingest": {
+      "error": null,
+      "rows": 3,
+      "status": "success"
+    },
+    "transform": {
+      "error": null,
+      "rows": 3,
+      "status": "success"
+    },
+    "validate": {
+      "error": null,
+      "rows": 3,
+      "status": "success"
+    }
+  },
+  "status": "success"
+}

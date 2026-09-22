@@ -1,0 +1,23 @@
+{
+  "pipeline": "orders_daily",
+  "stages": ["ingest", "transform", "validate"],
+  "tables": {
+    "raw_orders": {
+      "columns": [
+        {"name": "order_id", "type": "VARCHAR"},
+        {"name": "customer_id", "type": "VARCHAR"},
+        {"name": "amount", "type": "VARCHAR"},
+        {"name": "order_date", "type": "VARCHAR"}
+      ]
+    },
+    "orders_daily": {
+      "columns": [
+        {"name": "order_date", "type": "DATE"},
+        {"name": "order_id", "type": "VARCHAR"},
+        {"name": "customer_id", "type": "VARCHAR"},
+        {"name": "amount", "type": "DECIMAL(12,2)"}
+      ],
+      "checks": ["row_count_positive", "required_fields_non_null", "order_ids_unique"]
+    }
+  }
+}

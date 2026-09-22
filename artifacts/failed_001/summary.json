@@ -1,0 +1,21 @@
+{
+  "run_id": "failed_001",
+  "stages": {
+    "ingest": {
+      "error": null,
+      "rows": 3,
+      "status": "success"
+    },
+    "transform": {
+      "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'customer_id', 'total_amount', 'order_date']",
+      "rows": null,
+      "status": "failed"
+    },
+    "validate": {
+      "error": null,
+      "rows": null,
+      "status": "skipped"
+    }
+  },
+  "status": "failed"
+}

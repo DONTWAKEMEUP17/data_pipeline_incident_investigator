@@ -1,0 +1,20 @@
+{
+  "raw_orders": [
+    {
+      "name": "order_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "customer_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "total_amount",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "order_date",
+      "type": "VARCHAR"
+    }
+  ]
+}
