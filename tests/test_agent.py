@@ -34,6 +34,14 @@ class RepeatingModel:
         return ToolRequest("get_run_summary", {})
 
 
+class FailingModel:
+    name = "mock-failing-model"
+    cost_usd = None
+
+    def next_decision(self, run_id, observations):
+        raise RuntimeError("simulated provider failure")
+
+
 class AgentTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -104,6 +112,18 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(result.tool_call_count, 1)
         self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
         self.assertEqual(result.trace[-1].kind, "budget_exhausted")
+
+    def test_last_model_step_does_not_execute_another_tool(self):
+        result = investigate(self.provider, RepeatingModel(), "failed_001", max_model_steps=1)
+        self.assertEqual(result.tool_call_count, 0)
+        self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
+        self.assertEqual(result.trace[-1].detail["tool_not_executed"], "get_run_summary")
+
+    def test_model_error_returns_abstention(self):
+        result = investigate(self.provider, FailingModel(), "failed_001")
+        self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
+        self.assertEqual(result.trace[-1].kind, "model_error")
+        self.assertEqual(result.report.evidence_references, ())
 
     def test_report_schema_rejects_invalid_values_and_execution_claim(self):
         with self.assertRaisesRegex(ValueError, "root_cause_category"):

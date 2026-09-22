@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
@@ -112,7 +113,10 @@ class InvestigationResult:
     trace: tuple[TraceEvent, ...]
     tool_call_count: int
     model_step_count: int
-    model_cost_usd: float
+    model_cost_usd: float | None
+    model_api_calls: int
+    model_input_tokens: int
+    model_output_tokens: int
 
 
 ModelDecision = Union[ToolRequest, ReportDraft]
@@ -122,7 +126,7 @@ class ModelAdapter(Protocol):
     """Boundary for a future configured model provider."""
 
     name: str
-    cost_usd: float
+    cost_usd: float | None
 
     def next_decision(self, run_id: str, observations: Sequence[ToolObservation]) -> ModelDecision: ...
 
@@ -295,7 +299,12 @@ def investigate(
 
     while model_steps < max_model_steps:
         model_steps += 1
-        decision = model.next_decision(run_id, tuple(observations))
+        try:
+            decision = model.next_decision(run_id, tuple(observations))
+        except Exception as error:
+            trace.append(TraceEvent(model_steps, "model_error", {"error": str(error)[:300]}))
+            report = _fallback_report(run_id, observations, "The model adapter failed, so the investigator returned a partial report.")
+            break
         if isinstance(decision, ReportDraft):
             known_references = {item.reference_id for item in observations}
             cited = {item.reference_id for item in decision.evidence_references}
@@ -310,6 +319,11 @@ def investigate(
             break
 
         trace.append(TraceEvent(model_steps, "tool_request", {"tool": decision.tool, "arguments": decision.arguments}))
+        if model_steps >= max_model_steps:
+            report = _fallback_report(run_id, observations, "The final model step requested another tool, leaving no step for a grounded report.")
+            trace.append(TraceEvent(model_steps, "budget_exhausted", {"max_model_steps": max_model_steps,
+                                                                       "tool_not_executed": decision.tool}))
+            break
         if len(observations) >= max_tool_calls:
             report = _fallback_report(run_id, observations, "The tool-call budget was exhausted before the cause could be established.")
             trace.append(TraceEvent(model_steps, "budget_exhausted", {"max_tool_calls": max_tool_calls}))
@@ -330,15 +344,46 @@ def investigate(
     if report is None:
         report = _fallback_report(run_id, observations, "The model-step budget was exhausted before the cause could be established.")
         trace.append(TraceEvent(model_steps, "budget_exhausted", {"max_model_steps": max_model_steps}))
-    return InvestigationResult(report, tuple(trace), len(observations), model_steps, float(model.cost_usd))
+    return InvestigationResult(
+        report,
+        tuple(trace),
+        len(observations),
+        model_steps,
+        getattr(model, "cost_usd", None),
+        int(getattr(model, "api_calls", 0)),
+        int(getattr(model, "input_tokens", 0)),
+        int(getattr(model, "output_tokens", 0)),
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Investigate a saved run with the offline learning adapter")
     parser.add_argument("run_id")
     parser.add_argument("--artifacts-dir", type=Path, default=Path("artifacts"))
+    parser.add_argument("--adapter", choices=("local", "openai"), default="local")
+    parser.add_argument("--model", help="OpenAI model ID; defaults to OPENAI_MODEL")
+    parser.add_argument("--max-api-calls", type=int, default=4)
+    parser.add_argument("--max-output-tokens", type=int, default=700)
+    parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high"), default="low")
     args = parser.parse_args()
-    result = investigate(LocalArtifactProvider(args.artifacts_dir), DeterministicLearningAdapter(), args.run_id)
+    if args.adapter == "openai":
+        from .openai_adapter import OpenAIModelAdapter
+
+        model_name = args.model or os.environ.get("OPENAI_MODEL")
+        if not model_name:
+            parser.error("--model or OPENAI_MODEL is required with --adapter openai")
+        model: ModelAdapter = OpenAIModelAdapter(
+            model_name,
+            max_api_calls=args.max_api_calls,
+            max_output_tokens=args.max_output_tokens,
+            reasoning_effort=args.reasoning_effort,
+        )
+        model_steps = args.max_api_calls
+    else:
+        model = DeterministicLearningAdapter()
+        model_steps = MAX_MODEL_STEPS
+    result = investigate(LocalArtifactProvider(args.artifacts_dir), model, args.run_id,
+                         max_model_steps=model_steps)
     print(json.dumps(_jsonable(result), indent=2))
 
 
