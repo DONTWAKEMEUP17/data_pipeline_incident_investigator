@@ -3,7 +3,7 @@
   "stages": {
     "ingest": {
       "error": null,
-      "rows": 3,
+      "rows": 6,
       "status": "success"
     },
     "transform": {

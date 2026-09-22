@@ -12,7 +12,7 @@ def main() -> None:
         "--output-dir",
         type=Path,
         default=Path("artifacts"),
-        help="Directory for the two saved runs (default: artifacts)",
+        help="Directory for the saved runs (default: artifacts)",
     )
     args = parser.parse_args()
     for summary in generate_runs(args.output_dir):

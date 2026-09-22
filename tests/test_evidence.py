@@ -33,10 +33,14 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("total_amount", [column.name for column in comparison.observed])
         self.assertIsNone(self.provider.compare_schema("failed_001", "orders_daily").observed)
         profile = self.provider.profile_table("failed_001", "raw_orders")
-        self.assertEqual(profile.row_count, 3)
-        self.assertEqual(profile.duplicate_order_ids, 0)
+        self.assertEqual(profile.row_count, 6)
+        self.assertEqual(profile.duplicate_order_ids, 1)
         self.assertEqual(profile.null_counts["total_amount"], 0)
         self.assertEqual(run_baseline(self.provider, "failed_001").source, "transform")
+        duplicate_profile = self.provider.profile_table("failed_002", "raw_orders")
+        self.assertEqual(duplicate_profile.duplicate_order_ids, 1)
+        self.assertTrue(self.provider.compare_schema("failed_002", "raw_orders").matches)
+        self.assertEqual(run_baseline(self.provider, "failed_002").finding, "Validation failed: order_ids_unique")
         self.assertEqual(run_baseline(self.provider, "healthy_001").finding, "No failure found")
 
     def test_baseline_prefers_first_failed_validation(self):

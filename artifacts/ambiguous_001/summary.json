@@ -1,0 +1,21 @@
+{
+  "run_id": "ambiguous_001",
+  "stages": {
+    "ingest": {
+      "error": null,
+      "rows": 0,
+      "status": "success"
+    },
+    "transform": {
+      "error": null,
+      "rows": 0,
+      "status": "success"
+    },
+    "validate": {
+      "error": null,
+      "rows": 0,
+      "status": "failed"
+    }
+  },
+  "status": "failed"
+}

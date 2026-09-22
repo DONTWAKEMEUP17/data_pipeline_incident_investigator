@@ -20,6 +20,8 @@ FIXTURE_DIR = PROJECT_ROOT / "fixtures"
 RUN_INPUTS = (
     ("healthy_001", "orders_healthy.csv"),
     ("failed_001", "orders_renamed_column.csv"),
+    ("failed_002", "orders_duplicate_id.csv"),
+    ("ambiguous_001", "orders_empty.csv"),
 )
 STAGES = ("ingest", "transform", "validate")
 
@@ -43,11 +45,23 @@ def generate_run(run_id: str, input_name: str, output_dir: Path) -> dict[str, An
         raise ValueError("run ID and fixture must match a known synthetic run")
 
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    source = FIXTURE_DIR / input_name
+    with source.open(newline="", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        columns = next(reader, None)
+        if not columns or len(columns) != len(set(columns)):
+            raise ValueError("CSV header must contain unique columns")
+        rows = list(reader)
+    if any(not row or len(row) != len(columns) for row in rows):
+        raise ValueError("CSV rows must have the same number of fields as the header")
+    if any(row[0] == "order_id" and row[-1] == "order_date" for row in rows):
+        raise ValueError("CSV contains a repeated header; use a separate fixture")
+
     run_dir = output_dir / run_id
     log_dir = run_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     snapshot = run_dir / "input.csv"
-    shutil.copyfile(FIXTURE_DIR / input_name, snapshot)
+    shutil.copyfile(source, snapshot)
 
     # Recreate only this known generated database, so repeated runs have no stale tables.
     db_path = run_dir / "pipeline.duckdb"
@@ -58,18 +72,12 @@ def generate_run(run_id: str, input_name: str, output_dir: Path) -> dict[str, An
     schemas: dict[str, list[dict[str, str]]] = {}
     validation: dict[str, Any] = {"status": "skipped", "checks": []}
     try:
-        with snapshot.open(newline="", encoding="utf-8") as file:
-            reader = csv.reader(file)
-            columns = next(reader)
-            input_rows = sum(1 for _ in reader)
-        if not columns or len(columns) != len(set(columns)):
-            raise ValueError("CSV header must contain unique columns")
-
         connection.execute(
             "CREATE TABLE raw_orders AS SELECT * FROM read_csv(?, header = true, all_varchar = true)",
             [str(snapshot)],
         )
         schemas["raw_orders"] = _schema(connection, "raw_orders")
+        input_rows = connection.execute("SELECT COUNT(*) FROM raw_orders").fetchone()[0]
         stages["ingest"] = _stage("success", input_rows)
         logs["ingest"].append(f"Loaded {input_rows} CSV rows into raw_orders.")
 

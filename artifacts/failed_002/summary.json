@@ -1,0 +1,21 @@
+{
+  "run_id": "failed_002",
+  "stages": {
+    "ingest": {
+      "error": null,
+      "rows": 6,
+      "status": "success"
+    },
+    "transform": {
+      "error": null,
+      "rows": 6,
+      "status": "success"
+    },
+    "validate": {
+      "error": null,
+      "rows": 6,
+      "status": "failed"
+    }
+  },
+  "status": "failed"
+}

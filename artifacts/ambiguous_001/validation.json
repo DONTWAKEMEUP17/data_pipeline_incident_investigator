@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "name": "row_count_positive",
+      "observed": 0,
+      "passed": false
+    },
+    {
+      "name": "required_fields_non_null",
+      "observed": 0,
+      "passed": true
+    },
+    {
+      "name": "order_ids_unique",
+      "observed": 0,
+      "passed": true
+    }
+  ],
+  "status": "failed"
+}

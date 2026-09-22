@@ -1,0 +1,38 @@
+{
+  "orders_daily": [
+    {
+      "name": "order_date",
+      "type": "DATE"
+    },
+    {
+      "name": "order_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "customer_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "amount",
+      "type": "DECIMAL(12,2)"
+    }
+  ],
+  "raw_orders": [
+    {
+      "name": "order_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "customer_id",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "amount",
+      "type": "VARCHAR"
+    },
+    {
+      "name": "order_date",
+      "type": "VARCHAR"
+    }
+  ]
+}
