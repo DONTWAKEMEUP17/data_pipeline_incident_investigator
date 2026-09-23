@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, Sequence
@@ -34,6 +35,7 @@ MAX_OBSERVATION_CHARS = 4_000
 ALLOWED_TOOLS = frozenset(
     {"get_run_summary", "read_stage_log", "compare_schema", "profile_table", "sample_rows"}
 )
+API_CREDENTIAL_PATTERN = re.compile(r"\b[a-z]{0,6}sk-[A-Za-z0-9*_.-]{8,}\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -200,6 +202,11 @@ def _fallback_report(run_id: str, observations: Sequence[ToolObservation], expla
     )
 
 
+def _safe_error_text(error: Exception) -> str:
+    """Keep provider diagnostics while removing key-shaped credential material."""
+    return API_CREDENTIAL_PATTERN.sub("[REDACTED_API_CREDENTIAL]", str(error))[:300]
+
+
 def _confirmed_healthy(observation: ToolObservation) -> bool:
     """Accept only a fully successful structured summary as a healthy-run shortcut."""
     if observation.error or observation.tool != "get_run_summary" or not observation.output:
@@ -250,7 +257,7 @@ def investigate(
         try:
             decision = model.next_decision(run_id, tuple(observations))
         except Exception as error:
-            trace.append(TraceEvent(model_steps, "model_error", {"error": str(error)[:300]}))
+            trace.append(TraceEvent(model_steps, "model_error", {"error": _safe_error_text(error)}))
             report = _fallback_report(run_id, observations, "The model adapter failed, so the investigator returned a partial report.")
             break
         if isinstance(decision, ReportDraft):

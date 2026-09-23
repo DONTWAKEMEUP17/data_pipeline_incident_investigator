@@ -19,3 +19,4 @@ evaluation/results/*.json
 evaluation/v2/artifacts/
 evaluation/v2/results/*.json
 !evaluation/v2/results/local_development.json
+!evaluation/v2/results/openai_development_sample_initial.json

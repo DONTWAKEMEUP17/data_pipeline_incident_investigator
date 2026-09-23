@@ -42,6 +42,14 @@ class FailingModel:
         raise RuntimeError("simulated provider failure")
 
 
+class CredentialLeakingModel:
+    name = "mock-credential-leaking-model"
+    cost_usd = None
+
+    def next_decision(self, run_id, observations):
+        raise RuntimeError("Incorrect API key provided: xvsk-proj-abc********xyz")
+
+
 class AgentTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -124,6 +132,14 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
         self.assertEqual(result.trace[-1].kind, "model_error")
         self.assertEqual(result.report.evidence_references, ())
+
+    def test_model_error_redacts_api_credential_fingerprints(self):
+        result = investigate(self.provider, CredentialLeakingModel(), "failed_001")
+        error = result.trace[-1].detail["error"]
+        self.assertIn("[REDACTED_API_CREDENTIAL]", error)
+        self.assertNotIn("xvsk-proj", error)
+        self.assertNotIn("abc", error)
+        self.assertNotIn("xyz", error)
 
     def test_healthy_summary_guardrail_stops_before_another_model_call(self):
         model = ScriptedModel([ToolRequest("get_run_summary", {})])

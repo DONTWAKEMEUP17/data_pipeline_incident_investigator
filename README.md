@@ -108,6 +108,8 @@ The initial Terra development run scored `87.5%` category accuracy and `75%` app
 
 Benchmark v2 adds a separate shortcut-resistant suite rather than rewriting these v1 results. Its 18 cases use opaque validation IDs shared across different cause families, add concrete cause and evidence-sufficiency scoring, and default to the 12 development cases. The first free local development run scores the symptom baseline at `33.33%` category accuracy and `0%` cause accuracy; the deterministic agent scores `33.33%` category accuracy and `33.33%` cause accuracy. See `evaluation/v2/README.md`. V2 heldout cases have not been evaluated.
 
+An initial unchanged-prompt Terra sample over four v2 development cases scored `50%` category accuracy, `75%` cause accuracy, and `75%` evidence sufficiency. Review showed one tool-selection miss and one ambiguous category boundary despite a correct causal explanation. All four cases used the complete four-call budget. The snapshot is preserved without reruns; v2 heldout remains unused.
+
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
 OpenAI evaluation is explicit and opt-in. Start with one development case because each selected case can use up to the configured API-call budget:

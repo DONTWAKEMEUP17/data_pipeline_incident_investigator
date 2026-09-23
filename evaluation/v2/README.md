@@ -76,3 +76,35 @@ The lower category scores are expected: generic check IDs break the v1 name-to-c
 Do not use `--unlock-heldout` while tuning. The six heldout cases have been generated, but neither Terra nor the local v2 evaluation result has run them.
 
 调参期间不要使用 `--unlock-heldout`。当前保存的 v2 result 只包含 development cases，尚未对 v2 heldout 运行 Terra 或本地 evaluator。
+
+## Initial Terra development sample / Terra 初始样本
+
+The unchanged prompt fingerprint `12655904bc19` was run once on four representative development cases: `eval2_d001`, `eval2_d003`, `eval2_d007`, and `eval2_d012`. Every case used the full four-call budget. No case was rerun, and no heldout case was evaluated.
+
+使用未修改的 prompt 对四个 development cases 各运行一次。每个 case 都使用了完整的四次 API-call budget；没有重跑错误，也没有运行 heldout。
+
+| Metric | Symptom baseline | Terra agent |
+| --- | ---: | ---: |
+| Category accuracy | 50% | 50% |
+| Cause accuracy | 0% | 75% |
+| Evidence validity | 100% | 100% |
+| Evidence sufficiency | 50% | 75% |
+| Appropriate behavior | 25% | 50% |
+| Average tool calls | 2 | 3 |
+| Average latency | 0.968 ms | 12.173 s |
+| Model API calls | 0 | 16 |
+| Input tokens | 0 | 15,427 |
+| Output tokens | 0 | 2,462 |
+
+Per-case review:
+
+- `eval2_d001`: correctly diagnosed the renamed amount column as schema drift. It also spent one call profiling the raw table after the primary blocker was already established.
+- `eval2_d003`: correctly abstained from guessing what opaque `gate_03` meant, but chose schema comparison instead of profiling the output table and therefore missed the duplicate order ID.
+- `eval2_d007`: correctly explained and cited the stale customer-reference snapshot, but selected `freshness_volume` while the benchmark labels a stale reference used by a key lookup as `join_reference`. This is a taxonomy-boundary ambiguity rather than a failed causal explanation.
+- `eval2_d012`: correctly abstained with high uncertainty when two timestamp monitors conflicted. It also used a final profile call that did not change the diagnosis.
+
+The sample does not yet justify a general router. It points first to a narrower tool-selection policy for opaque validation failures, a clearer category definition for stale reference data, and a stopping policy that avoids an extra anomaly-search call when the report is already grounded.
+
+这个样本暂时不能证明需要完整 router。更直接的问题是 tool selection、category taxonomy 和 stopping policy。
+
+The exact unchanged snapshot is `results/openai_development_sample_initial.json`. Exact dollar cost remains `null`; the adapter records calls and tokens without hard-coding model pricing.
