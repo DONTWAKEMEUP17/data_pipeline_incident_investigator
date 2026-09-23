@@ -1,0 +1,509 @@
+{
+  "adapter": "openai:gpt-5.6-terra",
+  "benchmark": "local_incidents_v1",
+  "case_count": 2,
+  "cases": [
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 11562.795,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3473,
+        "model_output_tokens": 555,
+        "model_steps": 4,
+        "prediction": "data_quality",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed while row_count_positive and order_ids_unique passed; required_fields_non_null failed with observed value 1.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily contains 3 rows and has exactly one null amount; customer_id, order_date, and order_id have zero nulls, and duplicate_order_ids is zero.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "The transform log states that orders_daily was created with 3 rows.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because the required field amount is null in 1 of 3 rows in orders_daily. Ingest and transform completed successfully with 3 rows, and the transform log confirms the target table was created with 3 rows. Additional checks found no duplicate order IDs and non-null customer_id, order_date, and order_id, so the grounded anomaly is limited to amount completeness; the source or transformation step that introduced the null cannot be determined from the available evidence.",
+          "proposed_human_action": "Inspect the record with null amount and trace its amount value through the input and transformation mapping. Correct or quarantine the invalid record according to the data contract, then rerun validation; no repair was performed in this investigation.",
+          "root_cause_category": "data_quality",
+          "run_id": "eval_d006",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d006",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 1,
+                    "passed": false
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 1,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d006",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "transform"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Created orders_daily with 3 rows."
+                  }
+                ],
+                "run_id": "eval_d006",
+                "stage": "transform",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "data_quality"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.137,
+        "output": {
+          "finding": "Validation failed: required_fields_non_null",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 checks; status=failed."
+            }
+          ],
+          "run_id": "eval_d006",
+          "source": "validate"
+        },
+        "prediction": "data_quality",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d006",
+      "split": "development",
+      "variant": "null amount"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 11210.554,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3567,
+        "model_output_tokens": 521,
+        "model_steps": 4,
+        "prediction": "freshness_volume",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed; input_date_current had 1 violation, while row_count_positive, required_fields_non_null, and order_ids_unique passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Validation log states that input_date_current observed 1 violation.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders contains 3 rows with zero null counts and zero duplicate order IDs.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed solely because the input_date_current check reported 1 violation. The run summary shows ingest and transform both succeeded with 3 rows, while required-field, uniqueness, and positive-row-count checks passed. The raw_orders profile independently confirms 3 rows, no nulls in required columns, and no duplicate order IDs. No further grounded anomaly is available from the provided observations.",
+          "proposed_human_action": "Inspect the source input's order_date values and the pipeline's configured current-date/freshness threshold to identify the one stale input record or any date-policy mismatch; then rerun validation after the source or policy is corrected.",
+          "root_cause_category": "freshness_volume",
+          "run_id": "eval_d010",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d010",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "input_date_current",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check input_date_current observed 1 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d010",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d010",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "freshness_volume"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1.411,
+        "output": {
+          "finding": "Validation failed: input_date_current",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check input_date_current observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d010",
+          "source": "validate"
+        },
+        "prediction": "freshness_volume",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d010",
+      "split": "development",
+      "variant": "input one day stale"
+    }
+  ],
+  "error_review": {
+    "agent": [],
+    "baseline": []
+  },
+  "metrics": {
+    "family:data_quality": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 11562.795,
+        "average_tool_calls": 3.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 3473,
+        "total_model_api_calls": 4,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 555
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.137,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:freshness_volume": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 11210.554,
+        "average_tool_calls": 3.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 3567,
+        "total_model_api_calls": 4,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 521
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.411,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "overall": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 11386.675,
+        "average_tool_calls": 3.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 7040,
+        "total_model_api_calls": 8,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1076
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.774,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "split:development": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 11386.675,
+        "average_tool_calls": 3.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 7040,
+        "total_model_api_calls": 8,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1076
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.774,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    }
+  },
+  "seed": 20260922
+}

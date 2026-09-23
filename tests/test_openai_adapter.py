@@ -45,13 +45,6 @@ class OpenAIAdapterTest(unittest.TestCase):
                 "explanation": None, "evidence_references": [],
                 "proposed_human_action": None, "uncertainty": None,
             },
-            {
-                "root_cause_category": "unknown",
-                "explanation": "The selected run is healthy, so there is no failed incident to diagnose.",
-                "evidence_references": [{"reference_id": "tool-1", "claim": "The run status is success."}],
-                "proposed_human_action": "Select a failed run if an investigation is required.",
-                "uncertainty": "low",
-            },
         ])
         adapter = OpenAIModelAdapter("test-model", client=client, max_api_calls=2, max_output_tokens=300)
         with tempfile.TemporaryDirectory() as temp:
@@ -61,18 +54,16 @@ class OpenAIAdapterTest(unittest.TestCase):
 
         self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
         self.assertEqual(result.report.uncertainty, Uncertainty.LOW)
-        self.assertEqual(result.model_api_calls, 2)
-        self.assertEqual(result.model_input_tokens, 240)
-        self.assertEqual(result.model_output_tokens, 60)
+        self.assertEqual(result.model_api_calls, 1)
+        self.assertEqual(result.model_input_tokens, 120)
+        self.assertEqual(result.model_output_tokens, 30)
         self.assertIsNone(result.model_cost_usd)
         for call in client.responses.calls:
             self.assertFalse(call["store"])
             self.assertEqual(call["max_output_tokens"], 300)
             self.assertEqual(call["reasoning"], {"effort": "low"})
         self.assertIs(client.responses.calls[0]["text_format"], DecisionEnvelope)
-        self.assertIs(client.responses.calls[1]["text_format"], FinalDecisionEnvelope)
-        second_payload = json.loads(client.responses.calls[1]["input"])
-        self.assertTrue(second_payload["budget"]["must_finish_now"])
+        self.assertEqual(result.trace[-1].kind, "guardrail_report")
 
     def test_sdk_strict_schema_uses_supported_flat_object(self):
         from openai.lib._pydantic import to_strict_json_schema

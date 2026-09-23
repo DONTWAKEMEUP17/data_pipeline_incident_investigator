@@ -1,0 +1,169 @@
+{
+  "benchmark": "local_incidents_v2",
+  "cases": [
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "expected_cause": "renamed_amount_column",
+      "family": "schema_drift",
+      "run_id": "eval2_d001",
+      "split": "development",
+      "variant": "renamed monetary column"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "expected_cause": "column_order_changed",
+      "family": "schema_drift",
+      "run_id": "eval2_d002",
+      "split": "development",
+      "variant": "column order changed"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "duplicate_order_id",
+      "family": "data_quality",
+      "run_id": "eval2_d003",
+      "split": "development",
+      "variant": "duplicate order record"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "null_amount",
+      "family": "data_quality",
+      "run_id": "eval2_d004",
+      "split": "development",
+      "variant": "missing required amount"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "invalid_amount_format",
+      "family": "data_quality",
+      "run_id": "eval2_d005",
+      "split": "development",
+      "variant": "non-numeric amount"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "unknown_customer_key",
+      "family": "join_reference",
+      "run_id": "eval2_d006",
+      "split": "development",
+      "variant": "unknown source customer key"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "stale_reference_snapshot",
+      "family": "join_reference",
+      "run_id": "eval2_d007",
+      "split": "development",
+      "variant": "stale reference snapshot"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "customer_key_case_mismatch",
+      "family": "join_reference",
+      "run_id": "eval2_d008",
+      "split": "development",
+      "variant": "case-sensitive key mismatch"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "expected_cause": "stale_input_date",
+      "family": "freshness_volume",
+      "run_id": "eval2_d009",
+      "split": "development",
+      "variant": "stale input partition"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "expected_cause": "volume_below_minimum",
+      "family": "freshness_volume",
+      "run_id": "eval2_d010",
+      "split": "development",
+      "variant": "volume below contract"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "expected_cause": "no_incident",
+      "family": "healthy",
+      "run_id": "eval2_d011",
+      "split": "development",
+      "variant": "ordinary successful batch"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "expected_cause": "insufficient_evidence",
+      "family": "ambiguous",
+      "run_id": "eval2_d012",
+      "split": "development",
+      "variant": "conflicting delivery signals"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "expected_cause": "unexpected_currency_column",
+      "family": "schema_drift",
+      "run_id": "eval2_h001",
+      "split": "heldout",
+      "variant": "unexpected currency field"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "null_customer_id",
+      "family": "data_quality",
+      "run_id": "eval2_h002",
+      "split": "heldout",
+      "variant": "null customer key"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "customer_key_whitespace",
+      "family": "join_reference",
+      "run_id": "eval2_h003",
+      "split": "heldout",
+      "variant": "whitespace key mismatch"
+    },
+    {
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "expected_cause": "wrong_volume_threshold",
+      "family": "freshness_volume",
+      "run_id": "eval2_h004",
+      "split": "heldout",
+      "variant": "weekend threshold mismatch"
+    },
+    {
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "expected_cause": "no_incident",
+      "family": "healthy",
+      "run_id": "eval2_h005",
+      "split": "heldout",
+      "variant": "successful zero-value order"
+    },
+    {
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "expected_cause": "insufficient_evidence",
+      "family": "ambiguous",
+      "run_id": "eval2_h006",
+      "split": "heldout",
+      "variant": "unexplained generic gate"
+    }
+  ],
+  "labels_are_not_agent_input": true,
+  "seed": 20260923
+}

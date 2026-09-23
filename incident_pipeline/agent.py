@@ -200,6 +200,33 @@ def _fallback_report(run_id: str, observations: Sequence[ToolObservation], expla
     )
 
 
+def _confirmed_healthy(observation: ToolObservation) -> bool:
+    """Accept only a fully successful structured summary as a healthy-run shortcut."""
+    if observation.error or observation.tool != "get_run_summary" or not observation.output:
+        return False
+    output = observation.output
+    stages = output.get("stages", {})
+    checks = output.get("validation_checks", [])
+    return (
+        output.get("status") == "success"
+        and output.get("validation_status") == "passed"
+        and bool(stages)
+        and all(stage.get("status") == "success" for stage in stages.values())
+        and all(check.get("passed") is True for check in checks)
+    )
+
+
+def _healthy_report(run_id: str, observation: ToolObservation) -> IncidentReport:
+    return IncidentReport(
+        run_id,
+        RootCauseCategory.UNKNOWN,
+        "All recorded stages and validation checks succeeded, so there is no failed incident to diagnose.",
+        (EvidenceReference(observation.reference_id, "The structured run summary reports complete success."),),
+        "Confirm that this is the intended run before investigating another incident.",
+        Uncertainty.LOW,
+    )
+
+
 def investigate(
     provider: RunEvidenceProvider,
     model: ModelAdapter,
@@ -261,6 +288,13 @@ def investigate(
         observations.append(observation)
         trace.append(TraceEvent(model_steps, "tool_result", {"reference_id": reference_id, "tool": decision.tool,
                                                                "output": observation.output, "error": observation.error}))
+        if _confirmed_healthy(observation):
+            report = _healthy_report(run_id, observation)
+            trace.append(TraceEvent(model_steps, "guardrail_report", {
+                "reason": "fully_successful_run_summary",
+                "root_cause_category": RootCauseCategory.UNKNOWN.value,
+            }))
+            break
 
     if report is None:
         report = _fallback_report(run_id, observations, "The model-step budget was exhausted before the cause could be established.")

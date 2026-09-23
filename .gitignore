@@ -12,3 +12,10 @@ NOTES.md
 evaluation/artifacts/
 evaluation/results/*.json
 !evaluation/results/local_initial.json
+!evaluation/results/openai_eval_d006_eval_d010.json
+!evaluation/results/openai_development_remaining_initial.json
+!evaluation/results/openai_development_initial.json
+!evaluation/results/openai_development_after_guardrails.json
+evaluation/v2/artifacts/
+evaluation/v2/results/*.json
+!evaluation/v2/results/local_development.json

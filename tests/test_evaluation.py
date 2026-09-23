@@ -11,6 +11,7 @@ from incident_pipeline.agent import ALLOWED_TOOLS, DeterministicLearningAdapter,
 from incident_pipeline.evaluate import evaluate_cases
 from incident_pipeline.evaluation_cases import CASES, generate_evaluation_cases
 from incident_pipeline.evidence import LocalArtifactProvider
+from incident_pipeline.merge_evaluations import merge_results
 
 
 class EvaluationTest(unittest.TestCase):
@@ -81,6 +82,43 @@ class EvaluationTest(unittest.TestCase):
         self.assertFalse(result.report.changes_made)
         requested = {event.detail["tool"] for event in result.trace if event.kind == "tool_request"}
         self.assertTrue(requested.issubset(ALLOWED_TOOLS))
+
+    def test_merge_rejects_incompatible_results_and_preserves_case_order(self):
+        ticks = count()
+        first = evaluate_cases(
+            self.artifacts,
+            CASES[:2],
+            DeterministicLearningAdapter,
+            adapter_name="deterministic-learning-adapter",
+            clock=lambda: next(ticks) / 1_000,
+        )
+        second = evaluate_cases(
+            self.artifacts,
+            CASES[2:4],
+            DeterministicLearningAdapter,
+            adapter_name="deterministic-learning-adapter",
+            clock=lambda: next(ticks) / 1_000,
+        )
+        first_path = self.root / "first.json"
+        second_path = self.root / "second.json"
+        first_path.write_text(json.dumps(first))
+        second_path.write_text(json.dumps(second))
+
+        merged = merge_results([first_path, second_path])
+        self.assertEqual([record["run_id"] for record in merged["cases"]], [case.run_id for case in CASES[:4]])
+        self.assertEqual(merged["case_count"], 4)
+        self.assertEqual(len(merged["source_results"]), 2)
+
+        second["adapter"] = "different-adapter"
+        second_path.write_text(json.dumps(second))
+        with self.assertRaisesRegex(ValueError, "incompatible adapter"):
+            merge_results([first_path, second_path])
+
+        second["adapter"] = first["adapter"]
+        second["agent_revision"] = "different-prompt"
+        second_path.write_text(json.dumps(second))
+        with self.assertRaisesRegex(ValueError, "incompatible agent revision"):
+            merge_results([first_path, second_path])
 
 
 if __name__ == "__main__":

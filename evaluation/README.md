@@ -44,21 +44,96 @@ This is a deterministic policy evaluation, not an LLM benchmark. The agent's ten
 
 这是 deterministic policy 的评估，不是 LLM benchmark。Baseline 获胜是因为合成 validation name 很明确，而当前 agent 只实现了 Milestone 2 的少数分支。
 
-## Error-review checkpoint / 错误复盘 checkpoint
+## Selected Terra run / Terra 小样本运行
 
-Choose two failed **development** cases and explain what evidence the agent needed or how its decision policy should change. Good candidates are:
+Before changing the prompt or tools, the existing `gpt-5.6-terra` prompt was run on the two development cases selected at the human checkpoint: `eval_d006` (null amount) and `eval_d010` (stale input date).
 
-- `eval_d006` — null amount
-- `eval_d007` — unknown customer reference
-- `eval_d010` — stale input date
+在修改 prompt 或 tools 之前，使用现有 Terra prompt 运行了用户选择的两个 development cases。
 
-请选择两个失败的 development cases，并提出一个 prompt 或 tool-policy change。先不要根据 held-out errors 调参；否则 held-out set 就不再衡量 generalization。
+| Metric | Result |
+| --- | ---: |
+| Category accuracy | 2/2 (100%) |
+| Evidence validity | 2/2 (100%) |
+| Appropriate behavior | 2/2 (100%) |
+| Tool calls | 6 total (3 per case) |
+| Model API calls | 8 total (4 per case) |
+| Input tokens | 7,040 |
+| Output tokens | 1,076 |
+| Average latency | 11.387 seconds per case |
+
+`eval_d006` used summary → table profile → transform log → final report. `eval_d010` used summary → validation log → table profile → final report. In both cases, the first two evidence results were already enough to establish the primary category; the third tool mainly ruled out an additional anomaly. This follows the current **continue within budget** policy, but it also identifies a possible latency and token trade-off for later tuning.
+
+The exact result snapshot is saved in `results/openai_eval_d006_eval_d010.json`. It is a two-case development sample, so it does not establish full-benchmark accuracy or improvement over the baseline. No held-out case was used in this Terra run.
+
+完整结果保存在 `results/openai_eval_d006_eval_d010.json`。这是两个 development cases 的小样本，不能代表完整 benchmark，也不能据此声称超过 baseline。
+
+## Full Terra development result / 完整 development 结果
+
+The same unchanged Terra prompt was then run on the remaining 14 development cases. The two compatible result snapshots were validated and merged with `incident_pipeline.merge_evaluations`; the selected two cases were not charged twice. No held-out case was run.
+
+随后使用完全相同的 prompt 运行其余 14 个 development cases，并与之前的两个结果合并。Held-out cases 仍未运行。
+
+| Metric | Baseline | Terra |
+| --- | ---: | ---: |
+| Cases | 16 | 16 |
+| Category accuracy | 100% | 87.5% |
+| Evidence validity | 100% | 100% |
+| Appropriate behavior | 100% | 75% |
+| Average tool calls | 1.875 | 2.75 |
+| Average latency | 1.889 ms | 10.429 s |
+| Model API calls | 0 | 60 |
+| Input tokens | 0 | 52,757 |
+| Output tokens | 0 | 8,358 |
+
+Terra correctly classified all 12 diagnosable development failures across schema drift, data quality, join/reference, and freshness/volume. Four behavior errors remain:
+
+- `eval_d013` and `eval_d014` were healthy. After reading the successful summary, Terra requested `compare_schema` without a table argument. The adapter rejected the malformed request and returned a high-uncertainty fallback instead of a low-uncertainty healthy result.
+- `eval_d015` was an empty batch with insufficient causal evidence. Terra labeled it `freshness_volume` with medium uncertainty instead of abstaining.
+- `eval_d016` had a deliberately uncertain upstream-delivery check. Terra again chose `freshness_volume` with medium uncertainty instead of `unknown` with high uncertainty.
+
+The result supports two prompt hypotheses for development-only tuning: finish immediately with `unknown`/low uncertainty after a fully successful summary, and distinguish a failed volume/freshness symptom from evidence of its underlying cause. No prompt change has been made yet.
+
+结果说明两个可测试的 prompt hypotheses：成功 run 应立即结束；只有 symptom、没有 underlying-cause evidence 时应 abstain。当前尚未修改 prompt。
+
+The complete snapshot is `results/openai_development_initial.json`. Its sources are the two-case and remaining-14-case snapshots. Exact dollar cost is not calculated because model pricing is not hard-coded.
+
+## After healthy guardrail and abstention prompt / 修改后结果
+
+Two development-only changes were selected after reviewing the initial errors:
+
+1. A host-side healthy guardrail returns `unknown` with low uncertainty when the structured summary proves that every stage and validation check succeeded.
+2. The prompt now says that zero rows or an explicitly uncertain/conflicting check is a symptom, not a grounded freshness/volume root cause. It requires concrete stale-date or threshold evidence for that category.
+
+选择了两个只针对 development evidence 的修改：healthy shortcut 由 host code 确定执行；ambiguous symptom 必须 abstain，不能直接推断 underlying cause。
+
+| Metric | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Category accuracy | 87.5% | 93.75% | +6.25 points |
+| Evidence validity | 100% | 100% | unchanged |
+| Appropriate behavior | 75% | 93.75% | +18.75 points |
+| Average tool calls | 2.75 | 2.688 | -0.062 |
+| Average latency | 10.429 s | 9.636 s | -0.793 s |
+| Model API calls | 60 | 57 | -3 |
+| Input tokens | 52,757 | 53,926 | +1,169 |
+| Output tokens | 8,358 | 7,828 | -530 |
+
+Both healthy cases now stop after one summary tool call and one model API call, with low uncertainty. Both ambiguous cases now return `unknown` with high uncertainty. All schema, data-quality, and freshness/volume development cases remained correct.
+
+One join/reference case, `eval_d009`, regressed because Terra requested `compare_schema` without the required `table` after two valid observations. The adapter rejected the malformed request and safely returned an `unknown` fallback. This is retained as a representative model/tool-argument error rather than rerun away.
+
+Post-change prompt fingerprint: `12655904bc19`. The evaluator stores this revision, and the merger rejects snapshots from different revisions. The complete post-change result is `results/openai_development_after_guardrails.json`. No held-out case has been run.
+
+修改后完整结果保存在 `results/openai_development_after_guardrails.json`。Held-out 仍未运行。
 
 ## Reproduce / 复现
 
 ```sh
 .venv/bin/python -m incident_pipeline.evaluation_cases
 .venv/bin/python -m incident_pipeline.evaluate
+.venv/bin/python -m incident_pipeline.merge_evaluations \
+  evaluation/results/openai_eval_d006_eval_d010.json \
+  evaluation/results/openai_development_remaining_initial.json \
+  --output evaluation/results/openai_development_initial.json
 .venv/bin/python -m unittest discover -s tests -v
 ```
 

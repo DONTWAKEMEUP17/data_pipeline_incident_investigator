@@ -1,0 +1,2570 @@
+{
+  "adapter": "deterministic-learning-adapter",
+  "agent_revision": "deterministic-learning-adapter-v1",
+  "benchmark": "local_incidents_v2",
+  "case_count": 12,
+  "cases": [
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": true,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 4.688,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 4,
+        "prediction": "schema_drift",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Expected and observed raw schemas differ.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "The transform was blocked by schema drift: expected columns ['order_id', 'customer_id', 'amount', 'order_date'], observed ['order_id', 'customer_id', 'total_amount', 'order_date'].",
+          "proposed_human_action": "Ask the upstream owner whether to restore the contracted schema or approve an explicit mapping, then re-run validation.",
+          "root_cause_category": "schema_drift",
+          "run_id": "eval2_d001",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d001",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'customer_id', 'total_amount', 'order_date']",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": false,
+                "observed": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "total_amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval2_d001",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0,
+                  "total_amount": 0
+                },
+                "row_count": 3,
+                "run_id": "eval2_d001",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "schema_drift"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.134,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'customer_id', 'total_amount', 'order_date']"
+            }
+          ],
+          "run_id": "eval2_d001",
+          "source": "transform"
+        },
+        "prediction": "schema_drift",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "expected_cause": "renamed_amount_column",
+      "family": "schema_drift",
+      "required_evidence_tools": [
+        "compare_schema"
+      ],
+      "run_id": "eval2_d001",
+      "split": "development",
+      "variant": "renamed monetary column"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": true,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 4.05,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 4,
+        "prediction": "schema_drift",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Expected and observed raw schemas differ.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "The transform was blocked by schema drift: expected columns ['order_id', 'customer_id', 'amount', 'order_date'], observed ['customer_id', 'order_id', 'amount', 'order_date'].",
+          "proposed_human_action": "Ask the upstream owner whether to restore the contracted schema or approve an explicit mapping, then re-run validation.",
+          "root_cause_category": "schema_drift",
+          "run_id": "eval2_d002",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d002",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['customer_id', 'order_id', 'amount', 'order_date']",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": false,
+                "observed": [
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval2_d002",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval2_d002",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "schema_drift"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.164,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['customer_id', 'order_id', 'amount', 'order_date']"
+            }
+          ],
+          "run_id": "eval2_d002",
+          "source": "transform"
+        },
+        "prediction": "schema_drift",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "expected_cause": "column_order_changed",
+      "family": "schema_drift",
+      "required_evidence_tools": [
+        "compare_schema"
+      ],
+      "run_id": "eval2_d002",
+      "split": "development",
+      "variant": "column order changed"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.156,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d003",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d003",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 4,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 3 opaque checks; status=failed."
+                  }
+                ],
+                "run_id": "eval2_d003",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.167,
+        "output": {
+          "finding": "Validation failed: gate_03",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 opaque checks; status=failed."
+            }
+          ],
+          "run_id": "eval2_d003",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "duplicate_order_id",
+      "family": "data_quality",
+      "required_evidence_tools": [
+        "profile_table"
+      ],
+      "run_id": "eval2_d003",
+      "split": "development",
+      "variant": "duplicate order record"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.139,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d004",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d004",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 1,
+                    "passed": false
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 3 opaque checks; status=failed."
+                  }
+                ],
+                "run_id": "eval2_d004",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.098,
+        "output": {
+          "finding": "Validation failed: gate_02",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 opaque checks; status=failed."
+            }
+          ],
+          "run_id": "eval2_d004",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "null_amount",
+      "family": "data_quality",
+      "required_evidence_tools": [
+        "profile_table"
+      ],
+      "run_id": "eval2_d004",
+      "split": "development",
+      "variant": "missing required amount"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.15,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "Transform failed, but the schema evidence does not establish why.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d005",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d005",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "Could not convert raw_orders.amount value 'twelve' to DECIMAL(12,2).",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": true,
+                "observed": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval2_d005",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.09,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Could not convert raw_orders.amount value 'twelve' to DECIMAL(12,2)."
+            }
+          ],
+          "run_id": "eval2_d005",
+          "source": "transform"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "expected_cause": "invalid_amount_format",
+      "family": "data_quality",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "sample_rows"
+      ],
+      "run_id": "eval2_d005",
+      "split": "development",
+      "variant": "non-numeric amount"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.149,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d006",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d006",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 compared orders_daily.customer_id with the current customer reference."
+                  },
+                  {
+                    "number": 3,
+                    "text": "One source key was not present in the current reference; inspect row values to identify it."
+                  }
+                ],
+                "run_id": "eval2_d006",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.09,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 compared orders_daily.customer_id with the current customer reference."
+            },
+            {
+              "number": 3,
+              "text": "One source key was not present in the current reference; inspect row values to identify it."
+            }
+          ],
+          "run_id": "eval2_d006",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "unknown_customer_key",
+      "family": "join_reference",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "sample_rows"
+      ],
+      "run_id": "eval2_d006",
+      "split": "development",
+      "variant": "unknown source customer key"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.148,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d007",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d007",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 compared customer keys with reference snapshot dated 2026-09-14."
+                  },
+                  {
+                    "number": 3,
+                    "text": "The order batch is dated 2026-09-21; the current reference refresh is missing."
+                  }
+                ],
+                "run_id": "eval2_d007",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.099,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 compared customer keys with reference snapshot dated 2026-09-14."
+            },
+            {
+              "number": 3,
+              "text": "The order batch is dated 2026-09-21; the current reference refresh is missing."
+            }
+          ],
+          "run_id": "eval2_d007",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "stale_reference_snapshot",
+      "family": "join_reference",
+      "required_evidence_tools": [
+        "read_stage_log"
+      ],
+      "run_id": "eval2_d007",
+      "split": "development",
+      "variant": "stale reference snapshot"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.148,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d008",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d008",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 used a case-sensitive comparison against canonical uppercase customer keys."
+                  },
+                  {
+                    "number": 3,
+                    "text": "One source value did not match; inspect row values before changing the reference."
+                  }
+                ],
+                "run_id": "eval2_d008",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.098,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 used a case-sensitive comparison against canonical uppercase customer keys."
+            },
+            {
+              "number": 3,
+              "text": "One source value did not match; inspect row values before changing the reference."
+            }
+          ],
+          "run_id": "eval2_d008",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "customer_key_case_mismatch",
+      "family": "join_reference",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "sample_rows"
+      ],
+      "run_id": "eval2_d008",
+      "split": "development",
+      "variant": "case-sensitive key mismatch"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.146,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d009",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d009",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 requires the newest input partition to equal processing date 2026-09-21."
+                  },
+                  {
+                    "number": 3,
+                    "text": "The maximum observed order_date was 2026-09-20."
+                  }
+                ],
+                "run_id": "eval2_d009",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.094,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 requires the newest input partition to equal processing date 2026-09-21."
+            },
+            {
+              "number": 3,
+              "text": "The maximum observed order_date was 2026-09-20."
+            }
+          ],
+          "run_id": "eval2_d009",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "expected_cause": "stale_input_date",
+      "family": "freshness_volume",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "sample_rows"
+      ],
+      "run_id": "eval2_d009",
+      "split": "development",
+      "variant": "stale input partition"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.143,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d010",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d010",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 1,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 requires at least 3 rows for this scheduled weekday batch."
+                  },
+                  {
+                    "number": 3,
+                    "text": "The current batch contains 1 row."
+                  }
+                ],
+                "run_id": "eval2_d010",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "evidence_valid": true,
+        "latency_ms": 0.095,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 requires at least 3 rows for this scheduled weekday batch."
+            },
+            {
+              "number": 3,
+              "text": "The current batch contains 1 row."
+            }
+          ],
+          "run_id": "eval2_d010",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "expected_cause": "volume_below_minimum",
+      "family": "freshness_volume",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "profile_table"
+      ],
+      "run_id": "eval2_d010",
+      "split": "development",
+      "variant": "volume below contract"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": true,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.092,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 1,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The structured run summary reports complete success.",
+              "reference_id": "tool-1"
+            }
+          ],
+          "explanation": "All recorded stages and validation checks succeeded, so there is no failed incident to diagnose.",
+          "proposed_human_action": "Confirm that this is the intended run before investigating another incident.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d011",
+          "uncertainty": "low"
+        },
+        "tool_calls": 1,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d011",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  }
+                },
+                "status": "success",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "passed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "reason": "fully_successful_run_summary",
+              "root_cause_category": "unknown"
+            },
+            "kind": "guardrail_report",
+            "step": 1
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.062,
+        "output": {
+          "finding": "No failure found",
+          "log_excerpt": [],
+          "run_id": "eval2_d011",
+          "source": null
+        },
+        "prediction": "unknown",
+        "tool_calls": 1
+      },
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "expected_cause": "no_incident",
+      "family": "healthy",
+      "required_evidence_tools": [
+        "get_run_summary"
+      ],
+      "run_id": "eval2_d011",
+      "split": "development",
+      "variant": "ordinary successful batch"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": true,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.476,
+        "model_api_calls": 0,
+        "model_cost_usd": 0.0,
+        "model_input_tokens": 0,
+        "model_output_tokens": 0,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The requested evidence was unavailable or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "A validation failed, but the available evidence does not identify its underlying cause.",
+          "proposed_human_action": "Inspect the cited evidence and collect the missing upstream context before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval2_d012",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d012",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 received conflicting source timestamps from two monitors."
+                  },
+                  {
+                    "number": 3,
+                    "text": "Saved evidence cannot distinguish late delivery, clock skew, or a monitor defect."
+                  }
+                ],
+                "run_id": "eval2_d012",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.093,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 received conflicting source timestamps from two monitors."
+            },
+            {
+              "number": 3,
+              "text": "Saved evidence cannot distinguish late delivery, clock skew, or a monitor defect."
+            }
+          ],
+          "run_id": "eval2_d012",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "expected_cause": "insufficient_evidence",
+      "family": "ambiguous",
+      "required_evidence_tools": [
+        "read_stage_log"
+      ],
+      "run_id": "eval2_d012",
+      "split": "development",
+      "variant": "conflicting delivery signals"
+    }
+  ],
+  "error_review": {
+    "agent": [
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "duplicate_order_id",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d003"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "null_amount",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d004"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "invalid_amount_format",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d005"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "join_reference",
+        "expected_cause": "unknown_customer_key",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d006"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "expected_category": "join_reference",
+        "expected_cause": "stale_reference_snapshot",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d007"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "join_reference",
+        "expected_cause": "customer_key_case_mismatch",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d008"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "freshness_volume",
+        "expected_cause": "stale_input_date",
+        "family": "freshness_volume",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d009"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "freshness_volume",
+        "expected_cause": "volume_below_minimum",
+        "family": "freshness_volume",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d010"
+      }
+    ],
+    "baseline": [
+      {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "schema_drift",
+        "expected_cause": "renamed_amount_column",
+        "family": "schema_drift",
+        "predicted_category": "schema_drift",
+        "run_id": "eval2_d001"
+      },
+      {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "schema_drift",
+        "expected_cause": "column_order_changed",
+        "family": "schema_drift",
+        "predicted_category": "schema_drift",
+        "run_id": "eval2_d002"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "duplicate_order_id",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d003"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "null_amount",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d004"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "data_quality",
+        "expected_cause": "invalid_amount_format",
+        "family": "data_quality",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d005"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "join_reference",
+        "expected_cause": "unknown_customer_key",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d006"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "expected_category": "join_reference",
+        "expected_cause": "stale_reference_snapshot",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d007"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "join_reference",
+        "expected_cause": "customer_key_case_mismatch",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d008"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "freshness_volume",
+        "expected_cause": "stale_input_date",
+        "family": "freshness_volume",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d009"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": false,
+        "expected_category": "freshness_volume",
+        "expected_cause": "volume_below_minimum",
+        "family": "freshness_volume",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d010"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "expected_category": "unknown",
+        "expected_cause": "no_incident",
+        "family": "healthy",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d011"
+      },
+      {
+        "behavior_correct": false,
+        "category_correct": true,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "expected_category": "unknown",
+        "expected_cause": "insufficient_evidence",
+        "family": "ambiguous",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d012"
+      }
+    ]
+  },
+  "metrics": {
+    "family:ambiguous": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.476,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.093,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:data_quality": {
+      "agent": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.148,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.118,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:freshness_volume": {
+      "agent": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.144,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.095,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:healthy": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.092,
+        "average_tool_calls": 1.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.062,
+        "average_tool_calls": 1.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:join_reference": {
+      "agent": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.148,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.3333,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.096,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.3333,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:schema_drift": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 4.369,
+        "average_tool_calls": 3.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.149,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "overall": {
+      "agent": {
+        "appropriate_behavior_rate": 0.3333,
+        "average_latency_ms": 0.874,
+        "average_tool_calls": 2.083,
+        "case_count": 12,
+        "category_accuracy": 0.3333,
+        "cause_accuracy": 0.3333,
+        "evidence_sufficiency_rate": 0.4167,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.1667,
+        "average_latency_ms": 0.107,
+        "average_tool_calls": 1.917,
+        "case_count": 12,
+        "category_accuracy": 0.3333,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.25,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "split:development": {
+      "agent": {
+        "appropriate_behavior_rate": 0.3333,
+        "average_latency_ms": 0.874,
+        "average_tool_calls": 2.083,
+        "case_count": 12,
+        "category_accuracy": 0.3333,
+        "cause_accuracy": 0.3333,
+        "evidence_sufficiency_rate": 0.4167,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": 0.0,
+        "total_output_tokens": 0
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.1667,
+        "average_latency_ms": 0.107,
+        "average_tool_calls": 1.917,
+        "case_count": 12,
+        "category_accuracy": 0.3333,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 0.25,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    }
+  },
+  "seed": 20260923
+}

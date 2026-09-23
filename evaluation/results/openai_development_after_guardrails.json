@@ -1,0 +1,3296 @@
+{
+  "adapter": "openai:gpt-5.6-terra",
+  "agent_revision": "12655904bc19",
+  "benchmark": "local_incidents_v1",
+  "case_count": 16,
+  "cases": [
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 14064.274,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3815,
+        "model_output_tokens": 582,
+        "model_steps": 4,
+        "prediction": "schema_drift",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The transform stage failed with a raw_orders schema mismatch, explicitly expecting amount and observing total_amount; ingest succeeded with 3 rows and validation was skipped.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Schema comparison confirms expected column amount (VARCHAR) is absent and observed column total_amount (VARCHAR) is present, while the other listed columns match.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders contains 3 rows, with zero duplicate order IDs and zero nulls in all observed columns.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: the transform stage failed because raw_orders has schema drift: it expects an amount column but observed total_amount instead. The run ingested 3 rows successfully, but validation was skipped after the transform failure. Additional profiling found no duplicate order IDs and no nulls in the observed raw_orders columns; this does not resolve the schema mismatch.",
+          "proposed_human_action": "Confirm the intended raw_orders contract and align the upstream export or transform mapping so the expected amount field is supplied or total_amount is explicitly accepted/renamed. Re-run the pipeline after the contract change is deployed; no repair was performed during this investigation.",
+          "root_cause_category": "schema_drift",
+          "run_id": "eval_d001",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d001",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'customer_id', 'total_amount', 'order_date']",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": false,
+                "observed": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "total_amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval_d001",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0,
+                  "total_amount": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d001",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "schema_drift"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.118,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'customer_id', 'total_amount', 'order_date']"
+            }
+          ],
+          "run_id": "eval_d001",
+          "source": "transform"
+        },
+        "prediction": "schema_drift",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d001",
+      "split": "development",
+      "variant": "renamed amount column"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10059.963,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3764,
+        "model_output_tokens": 584,
+        "model_steps": 4,
+        "prediction": "schema_drift",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Transform failed with a raw_orders schema mismatch: expected order_id, customer_id, amount, and order_date; observed order_id, amount, and order_date.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Schema comparison confirms raw_orders does not match the expected schema and specifically lacks customer_id.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders has 3 rows, zero duplicate order IDs, and zero nulls in its observed columns.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: the transform stage failed because raw_orders is missing the required customer_id column. The run summary reports the expected four-column schema versus an observed three-column schema, and the schema comparison independently confirms that customer_id is absent. As an additional observation, the available raw_orders columns have no nulls, no duplicate order IDs, and 3 rows; these profile results do not establish any separate data-quality or volume problem.",
+          "proposed_human_action": "Investigate the upstream raw_orders producer or ingestion mapping and restore/populate the customer_id column with the expected VARCHAR schema, then rerun the pipeline and validation.",
+          "root_cause_category": "schema_drift",
+          "run_id": "eval_d002",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d002",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'amount', 'order_date']",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": false,
+                "observed": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval_d002",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d002",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "schema_drift"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.793,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['order_id', 'amount', 'order_date']"
+            }
+          ],
+          "run_id": "eval_d002",
+          "source": "transform"
+        },
+        "prediction": "schema_drift",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d002",
+      "split": "development",
+      "variant": "missing customer_id"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 11183.305,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3809,
+        "model_output_tokens": 608,
+        "model_steps": 4,
+        "prediction": "schema_drift",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The transform stage failed with an explicit raw_orders schema mismatch, and validation was skipped.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "The expected and observed raw_orders schemas contain the same fields and types but have order_id and customer_id reversed in position.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders contains 3 rows, zero nulls in the profiled columns, and zero duplicate order_ids.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: the transform stage failed because raw_orders has a column-order schema mismatch. The pipeline expects [order_id, customer_id, amount, order_date], while the observed schema is [customer_id, order_id, amount, order_date]. Additional profiling found no nulls in the four columns and no duplicate order_ids across 3 rows; these checks do not indicate a separate data-quality blocker. Validation was skipped because transform failed.",
+          "proposed_human_action": "Inspect the raw_orders producer or ingestion schema contract and restore the expected column order (order_id before customer_id), or update the transform's schema handling if column order should not be contractual. Rerun the pipeline after the contract is aligned.",
+          "root_cause_category": "schema_drift",
+          "run_id": "eval_d003",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d003",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['customer_id', 'order_id', 'amount', 'order_date']",
+                    "rows": null,
+                    "status": "failed"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": null,
+                    "status": "skipped"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [],
+                "validation_status": "skipped"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": false,
+                "observed": [
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval_d003",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-2",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d003",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "schema_drift"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.875,
+        "output": {
+          "finding": "Stage failed: transform",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "raw_orders schema mismatch: expected ['order_id', 'customer_id', 'amount', 'order_date']; observed ['customer_id', 'order_id', 'amount', 'order_date']"
+            }
+          ],
+          "run_id": "eval_d003",
+          "source": "transform"
+        },
+        "prediction": "schema_drift",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "schema_drift",
+      "family": "schema_drift",
+      "run_id": "eval_d003",
+      "split": "development",
+      "variant": "reordered columns"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 11441.912,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3863,
+        "model_output_tokens": 545,
+        "model_steps": 4,
+        "prediction": "data_quality",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed solely on order_ids_unique, with one duplicate observed; row-count-positive and required-fields-non-null checks passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily contains 4 rows, has duplicate_order_ids=1, and has no nulls in the profiled required columns.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "The full returned table sample contains two records with order_id O-103, demonstrating the duplicate key values.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because order_id uniqueness is violated in orders_daily. The run summary reports one duplicate order ID, and the complete four-row sample shows O-103 assigned to two distinct rows (customers C-103 and C-104, with amounts 29.00 and 7.00). Additional check results show all required fields are non-null and row count is positive; no separate freshness or volume issue is established.",
+          "proposed_human_action": "Investigate the upstream or transformation logic that produced duplicate order_id O-103, determine which record(s) are valid, and correct/deduplicate the source logic before rerunning validation.",
+          "root_cause_category": "data_quality",
+          "run_id": "eval_d004",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d004",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 4,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 4,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 1,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 4,
+                "run_id": "eval_d004",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "limit": 4,
+                "table": "orders_daily"
+              },
+              "tool": "sample_rows"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "rows": [
+                  {
+                    "amount": "12.50",
+                    "customer_id": "C-101",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-101"
+                  },
+                  {
+                    "amount": "8.25",
+                    "customer_id": "C-102",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-102"
+                  },
+                  {
+                    "amount": "29.00",
+                    "customer_id": "C-103",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-103"
+                  },
+                  {
+                    "amount": "7.00",
+                    "customer_id": "C-104",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-103"
+                  }
+                ],
+                "run_id": "eval_d004",
+                "table": "orders_daily",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "sample_rows"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "data_quality"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.769,
+        "output": {
+          "finding": "Validation failed: order_ids_unique",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 checks; status=failed."
+            }
+          ],
+          "run_id": "eval_d004",
+          "source": "validate"
+        },
+        "prediction": "data_quality",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d004",
+      "split": "development",
+      "variant": "one duplicate order ID"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10674.345,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3823,
+        "model_output_tokens": 536,
+        "model_steps": 4,
+        "prediction": "data_quality",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed solely on order_ids_unique: observed 2 and passed=false; row count was 5 and required_fields_non_null passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily contains 5 rows, 2 duplicate order IDs, and no nulls in order_id, customer_id, order_date, or amount.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "The observed orders_daily schema matches the expected schema exactly.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because 2 duplicate order IDs were detected in the 5-row orders_daily output, violating the order_ids_unique check. The pipeline ingest and transform stages succeeded, required fields were non-null, and the table schema exactly matched expectations. No separate grounded anomaly beyond the duplicate identifiers was observed.",
+          "proposed_human_action": "Investigate the upstream or transformation logic that produced repeated order_id values and deduplicate or enforce order-ID uniqueness before rerunning validation.",
+          "root_cause_category": "data_quality",
+          "run_id": "eval_d005",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d005",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 5,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 5,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 5,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 5,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 2,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 2,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 5,
+                "run_id": "eval_d005",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_date",
+                    "type": "DATE"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "DECIMAL(12,2)"
+                  }
+                ],
+                "matches": true,
+                "observed": [
+                  {
+                    "name": "order_date",
+                    "type": "DATE"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "DECIMAL(12,2)"
+                  }
+                ],
+                "run_id": "eval_d005",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-3",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "data_quality"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1.008,
+        "output": {
+          "finding": "Validation failed: order_ids_unique",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 checks; status=failed."
+            }
+          ],
+          "run_id": "eval_d005",
+          "source": "validate"
+        },
+        "prediction": "data_quality",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d005",
+      "split": "development",
+      "variant": "multiple duplicate order IDs"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10516.193,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3823,
+        "model_output_tokens": 558,
+        "model_steps": 4,
+        "prediction": "data_quality",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The run failed at validation; required_fields_non_null failed with one observed violation, while row count was positive and order IDs were unique.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily contains 3 rows and exactly one null amount; customer_id, order_date, and order_id have zero nulls, and there are no duplicate order IDs.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "The observed orders_daily schema exactly matches the expected schema.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because one of the three orders_daily rows has a null required field. The table profile localizes the null to amount (1 null), while all other profiled required identifiers/dates have zero nulls. Schema comparison matches the expected schema, and order IDs are unique, so the available evidence does not support schema drift or duplicate-key causes. No additional grounded anomaly beyond the null amount was found.",
+          "proposed_human_action": "Investigate the source-to-transform path that produced the null amount, correct or quarantine the affected record according to the pipeline's data-quality policy, then rerun validation after the data is remediated.",
+          "root_cause_category": "data_quality",
+          "run_id": "eval_d006",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d006",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 1,
+                    "passed": false
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 1,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d006",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_date",
+                    "type": "DATE"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "DECIMAL(12,2)"
+                  }
+                ],
+                "matches": true,
+                "observed": [
+                  {
+                    "name": "order_date",
+                    "type": "DATE"
+                  },
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "DECIMAL(12,2)"
+                  }
+                ],
+                "run_id": "eval_d006",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-3",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "data_quality"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1.063,
+        "output": {
+          "finding": "Validation failed: required_fields_non_null",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 checks; status=failed."
+            }
+          ],
+          "run_id": "eval_d006",
+          "source": "validate"
+        },
+        "prediction": "data_quality",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "data_quality",
+      "family": "data_quality",
+      "run_id": "eval_d006",
+      "split": "development",
+      "variant": "null amount"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10658.43,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3812,
+        "model_output_tokens": 540,
+        "model_steps": 4,
+        "prediction": "join_reference",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed, with customer_ids_known reporting 1 violation while row-count, required-field, and order-ID uniqueness checks passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily contains 3 rows, has no nulls in required columns, and has no duplicate order IDs.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "Validate-stage logs explicitly report 1 customer_ids_known violation.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because 1 orders_daily.customer_id is not recognized by the customer reference check. The run processed 3 rows through ingest and transform successfully, and validate failed solely on customer_ids_known. Additional checks show no null required fields and no duplicate order IDs; no other grounded anomaly is present.",
+          "proposed_human_action": "Investigate the unmatched customer_id against the customer reference dataset: determine whether the order carries an invalid customer identifier or the reference dataset is missing a valid customer, then correct the responsible source/reference process and rerun validation.",
+          "root_cause_category": "join_reference",
+          "run_id": "eval_d007",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d007",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "customer_ids_known",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d007",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check customer_ids_known observed 1 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d007",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "join_reference"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 2.321,
+        "output": {
+          "finding": "Validation failed: customer_ids_known",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check customer_ids_known observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d007",
+          "source": "validate"
+        },
+        "prediction": "join_reference",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d007",
+      "split": "development",
+      "variant": "one unknown customer"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10367.995,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3823,
+        "model_output_tokens": 546,
+        "model_steps": 4,
+        "prediction": "join_reference",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed solely on customer_ids_known, with 2 observed violations; row count, required-field, and uniqueness checks passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Validation log confirms customer_ids_known had 2 violations.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "orders_daily contains 3 rows, has no nulls in key fields, and has no duplicate order IDs.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because 2 records have customer IDs that are not known to the customer reference set. The run otherwise produced 3 rows successfully; required fields are non-null and order IDs are unique. No additional grounded anomaly is present in the available evidence.",
+          "proposed_human_action": "Investigate the two unmatched customer_id values against the customer reference dataset and its expected coverage for this batch; correct the reference/data relationship as appropriate, then rerun validation.",
+          "root_cause_category": "join_reference",
+          "run_id": "eval_d008",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d008",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "customer_ids_known",
+                    "observed": 2,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check customer_ids_known observed 2 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d008",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d008",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "join_reference"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.595,
+        "output": {
+          "finding": "Validation failed: customer_ids_known",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check customer_ids_known observed 2 violation(s)."
+            }
+          ],
+          "run_id": "eval_d008",
+          "source": "validate"
+        },
+        "prediction": "join_reference",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d008",
+      "split": "development",
+      "variant": "multiple unknown customers"
+    },
+    {
+      "agent": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "evidence_valid": true,
+        "latency_ms": 9467.65,
+        "model_api_calls": 3,
+        "model_cost_usd": null,
+        "model_input_tokens": 2821,
+        "model_output_tokens": 437,
+        "model_steps": 3,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The last available tool result is partial or inconclusive.",
+              "reference_id": "tool-2"
+            }
+          ],
+          "explanation": "The model adapter failed, so the investigator returned a partial report.",
+          "proposed_human_action": "Review the trace and collect more evidence before changing the pipeline.",
+          "root_cause_category": "unknown",
+          "run_id": "eval_d009",
+          "uncertainty": "high"
+        },
+        "tool_calls": 2,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d009",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "customer_ids_known",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check customer_ids_known observed 1 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d009",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": "compare_schema requires table"
+            },
+            "kind": "model_error",
+            "step": 3
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 2.255,
+        "output": {
+          "finding": "Validation failed: customer_ids_known",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check customer_ids_known observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d009",
+          "source": "validate"
+        },
+        "prediction": "join_reference",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "family": "join_reference",
+      "run_id": "eval_d009",
+      "split": "development",
+      "variant": "reference key case mismatch"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10482.08,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3794,
+        "model_output_tokens": 516,
+        "model_steps": 4,
+        "prediction": "freshness_volume",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed while ingest and transform succeeded; input_date_current had 1 observed violation and was the only failed listed validation check.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "The batch contained 3 rows, with row_count_positive, required_fields_non_null, and order_ids_unique checks passing.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Validation logs explicitly report one input_date_current violation.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed solely because input_date_current reported 1 violation. The batch otherwise processed successfully with 3 rows, passed positive row-count validation, had no required-field null violations, and had no duplicate order-ID violations. This establishes a stale-date/freshness validation breach; no additional grounded anomalies are present in the available evidence.",
+          "proposed_human_action": "Inspect the source batch's input-date field and the pipeline's expected-current-date rule, then correct or replace the stale-dated input (or formally adjust the rule if the batch is intentionally backfilled) and rerun validation.",
+          "root_cause_category": "freshness_volume",
+          "run_id": "eval_d010",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d010",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "input_date_current",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "ingest"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Loaded 3 CSV rows into raw_orders."
+                  }
+                ],
+                "run_id": "eval_d010",
+                "stage": "ingest",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check input_date_current observed 1 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d010",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "freshness_volume"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 2.746,
+        "output": {
+          "finding": "Validation failed: input_date_current",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check input_date_current observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d010",
+          "source": "validate"
+        },
+        "prediction": "freshness_volume",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d010",
+      "split": "development",
+      "variant": "input one day stale"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10241.135,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3823,
+        "model_output_tokens": 543,
+        "model_steps": 4,
+        "prediction": "freshness_volume",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Run validation failed solely on input_date_current, with observed value 7; row-count, required-field, and order-ID uniqueness checks passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Validate-stage log confirms input_date_current had 7 violations.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders contains 3 rows with zero nulls in profiled required fields and zero duplicate order IDs.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because input_date_current recorded 7 violations; the validate log independently confirms 7 input-date-current violations. The run has nonzero volume (3 rows), and profiling of raw_orders found no null required fields or duplicate order IDs, so the available evidence does not indicate schema/data-quality failure as the cause. The apparent mismatch between 3 rows and 7 date violations is an additional anomaly, but its cause is not established from the observations.",
+          "proposed_human_action": "Investigate the input-date-current validator and its date/reference-date inputs to determine why it reports seven violations for a three-row batch; confirm the source order_date values and expected freshness cutoff before rerunning validation.",
+          "root_cause_category": "freshness_volume",
+          "run_id": "eval_d011",
+          "uncertainty": "medium"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d011",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "input_date_current",
+                    "observed": 7,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check input_date_current observed 7 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d011",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 3,
+                "run_id": "eval_d011",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "freshness_volume"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 3.174,
+        "output": {
+          "finding": "Validation failed: input_date_current",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check input_date_current observed 7 violation(s)."
+            }
+          ],
+          "run_id": "eval_d011",
+          "source": "validate"
+        },
+        "prediction": "freshness_volume",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d011",
+      "split": "development",
+      "variant": "input one week stale"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10665.836,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3804,
+        "model_output_tokens": 602,
+        "model_steps": 4,
+        "prediction": "freshness_volume",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The validate stage failed solely on row_count_minimum: observed 1, while row_count_positive, required_fields_non_null, and order_ids_unique passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "orders_daily has 1 row and no null required fields or duplicate order IDs.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders has 1 row and no null required fields or duplicate order IDs, indicating the low row count was already present in the raw input.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because orders_daily contains 1 row, below the configured row_count_minimum requirement. The other reported validation checks passed: the row is present, required fields are non-null, and order IDs are unique. Additional bounded evidence shows raw_orders also contains exactly 1 row with no nulls or duplicate IDs, so the low volume is present upstream of the transformed daily table; the available evidence does not establish why the batch volume was low.",
+          "proposed_human_action": "Investigate the upstream extraction/input batch for eval_d012 and confirm whether one raw order was expected. If not expected, identify why source delivery or extraction volume fell below the configured minimum before rerunning the pipeline; if expected, review whether the minimum-row threshold matches legitimate low-volume batches.",
+          "root_cause_category": "freshness_volume",
+          "run_id": "eval_d012",
+          "uncertainty": "medium"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d012",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 1,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "row_count_minimum",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "orders_daily"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 1,
+                "run_id": "eval_d012",
+                "table": "orders_daily"
+              },
+              "reference_id": "tool-2",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "profile_table"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "duplicate_order_ids": 0,
+                "null_counts": {
+                  "amount": 0,
+                  "customer_id": 0,
+                  "order_date": 0,
+                  "order_id": 0
+                },
+                "row_count": 1,
+                "run_id": "eval_d012",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "profile_table"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "freshness_volume"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 2.78,
+        "output": {
+          "finding": "Validation failed: row_count_minimum",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check row_count_minimum observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d012",
+          "source": "validate"
+        },
+        "prediction": "freshness_volume",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "freshness_volume",
+      "family": "freshness_volume",
+      "run_id": "eval_d012",
+      "split": "development",
+      "variant": "batch below expected volume"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1289.9,
+        "model_api_calls": 1,
+        "model_cost_usd": null,
+        "model_input_tokens": 770,
+        "model_output_tokens": 68,
+        "model_steps": 1,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The structured run summary reports complete success.",
+              "reference_id": "tool-1"
+            }
+          ],
+          "explanation": "All recorded stages and validation checks succeeded, so there is no failed incident to diagnose.",
+          "proposed_human_action": "Confirm that this is the intended run before investigating another incident.",
+          "root_cause_category": "unknown",
+          "run_id": "eval_d013",
+          "uncertainty": "low"
+        },
+        "tool_calls": 1,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d013",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  }
+                },
+                "status": "success",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "passed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "reason": "fully_successful_run_summary",
+              "root_cause_category": "unknown"
+            },
+            "kind": "guardrail_report",
+            "step": 1
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1.449,
+        "output": {
+          "finding": "No failure found",
+          "log_excerpt": [],
+          "run_id": "eval_d013",
+          "source": null
+        },
+        "prediction": "unknown",
+        "tool_calls": 1
+      },
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_d013",
+      "split": "development",
+      "variant": "standard healthy batch"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1402.027,
+        "model_api_calls": 1,
+        "model_cost_usd": null,
+        "model_input_tokens": 770,
+        "model_output_tokens": 68,
+        "model_steps": 1,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The structured run summary reports complete success.",
+              "reference_id": "tool-1"
+            }
+          ],
+          "explanation": "All recorded stages and validation checks succeeded, so there is no failed incident to diagnose.",
+          "proposed_human_action": "Confirm that this is the intended run before investigating another incident.",
+          "root_cause_category": "unknown",
+          "run_id": "eval_d014",
+          "uncertainty": "low"
+        },
+        "tool_calls": 1,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d014",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 1,
+                    "status": "success"
+                  }
+                },
+                "status": "success",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 1,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "passed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "reason": "fully_successful_run_summary",
+              "root_cause_category": "unknown"
+            },
+            "kind": "guardrail_report",
+            "step": 1
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 0.851,
+        "output": {
+          "finding": "No failure found",
+          "log_excerpt": [],
+          "run_id": "eval_d014",
+          "source": null
+        },
+        "prediction": "unknown",
+        "tool_calls": 1
+      },
+      "expected_behavior": "healthy",
+      "expected_category": "unknown",
+      "family": "healthy",
+      "run_id": "eval_d014",
+      "split": "development",
+      "variant": "small allowed batch"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10976.738,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3793,
+        "model_output_tokens": 550,
+        "model_steps": 4,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "The run failed at validation because row_count_positive observed 0, while ingest and transform each produced 0 rows.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "The ingest log states that 0 CSV rows were loaded into raw_orders.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "raw_orders observed schema matches the expected schema.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "Primary blocker: validation failed because the pipeline processed zero rows; ingest logged that 0 CSV rows were loaded into raw_orders, and the row_count_positive check failed. This does not establish a freshness/volume root cause because the available evidence cannot distinguish a legitimate empty batch from an upstream outage or an incorrect input/filter condition. Additional issue: none grounded. Schema drift is not indicated because raw_orders matches the expected schema.",
+          "proposed_human_action": "Investigate the configured input batch and upstream delivery for this run, including whether an empty batch was expected and whether source-selection or filtering excluded all records; then rerun validation after confirming the intended input contains records.",
+          "root_cause_category": "unknown",
+          "run_id": "eval_d015",
+          "uncertainty": "high"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d015",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 0,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 0,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 0,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 0,
+                    "passed": false
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "ingest"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Loaded 0 CSV rows into raw_orders."
+                  }
+                ],
+                "run_id": "eval_d015",
+                "stage": "ingest",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "table": "raw_orders"
+              },
+              "tool": "compare_schema"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "expected": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "matches": true,
+                "observed": [
+                  {
+                    "name": "order_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "customer_id",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "VARCHAR"
+                  },
+                  {
+                    "name": "order_date",
+                    "type": "VARCHAR"
+                  }
+                ],
+                "run_id": "eval_d015",
+                "table": "raw_orders"
+              },
+              "reference_id": "tool-3",
+              "tool": "compare_schema"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 2.548,
+        "output": {
+          "finding": "Validation failed: row_count_positive",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 3 checks; status=failed."
+            }
+          ],
+          "run_id": "eval_d015",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_d015",
+      "split": "development",
+      "variant": "empty batch with no upstream context"
+    },
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 10687.634,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 3819,
+        "model_output_tokens": 545,
+        "model_steps": 4,
+        "prediction": "unknown",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Ingest and transform succeeded with 3 rows; validation failed solely on upstream_delivery_uncertain, while row count, required fields, and unique order IDs passed.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "Validation log reports one upstream_delivery_uncertain violation.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "Transform log confirms orders_daily was created with 3 rows.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "The run failed only because validation reported one violation of upstream_delivery_uncertain. Ingest and transform both succeeded with 3 rows, and row-count, required-field, and order-ID uniqueness checks passed. The available evidence explicitly characterizes the upstream-delivery condition as uncertain, so it does not ground a specific freshness/volume or other root cause. No additional anomaly is established beyond the failed uncertain-delivery check.",
+          "proposed_human_action": "Investigate the upstream delivery signal and its evidence outside this run; determine whether the source delivery was actually late, missing, or otherwise unverifiable, then rerun validation after the condition is resolved or correctly classified.",
+          "root_cause_category": "unknown",
+          "run_id": "eval_d016",
+          "uncertainty": "high"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval_d016",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "row_count_positive",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "required_fields_non_null",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "order_ids_unique",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "upstream_delivery_uncertain",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "Check upstream_delivery_uncertain observed 1 violation(s)."
+                  }
+                ],
+                "run_id": "eval_d016",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 20,
+                "stage": "transform"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Created orders_daily with 3 rows."
+                  }
+                ],
+                "run_id": "eval_d016",
+                "stage": "transform",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "unknown"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "evidence_valid": true,
+        "latency_ms": 1.181,
+        "output": {
+          "finding": "Validation failed: upstream_delivery_uncertain",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "Check upstream_delivery_uncertain observed 1 violation(s)."
+            }
+          ],
+          "run_id": "eval_d016",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "abstain",
+      "expected_category": "unknown",
+      "family": "ambiguous",
+      "run_id": "eval_d016",
+      "split": "development",
+      "variant": "generic failed check"
+    }
+  ],
+  "error_review": {
+    "agent": [
+      {
+        "expected": "join_reference",
+        "family": "join_reference",
+        "predicted": "unknown",
+        "run_id": "eval_d009",
+        "split": "development"
+      }
+    ],
+    "baseline": []
+  },
+  "metrics": {
+    "family:ambiguous": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 10832.186,
+        "average_tool_calls": 3.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 7612,
+        "total_model_api_calls": 8,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1095
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.865,
+        "average_tool_calls": 2.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:data_quality": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 10877.483,
+        "average_tool_calls": 3.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 11509,
+        "total_model_api_calls": 12,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1639
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.947,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:freshness_volume": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 10463.017,
+        "average_tool_calls": 3.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 11421,
+        "total_model_api_calls": 12,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1661
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 2.9,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:healthy": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1345.964,
+        "average_tool_calls": 1.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 1540,
+        "total_model_api_calls": 2,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 136
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.15,
+        "average_tool_calls": 1.0,
+        "case_count": 2,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:join_reference": {
+      "agent": {
+        "appropriate_behavior_rate": 0.6667,
+        "average_latency_ms": 10164.692,
+        "average_tool_calls": 2.667,
+        "case_count": 3,
+        "category_accuracy": 0.6667,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 10456,
+        "total_model_api_calls": 11,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1523
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.724,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "family:schema_drift": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 11769.181,
+        "average_tool_calls": 3.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 11388,
+        "total_model_api_calls": 12,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 1774
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 0.595,
+        "average_tool_calls": 2.0,
+        "case_count": 3,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "overall": {
+      "agent": {
+        "appropriate_behavior_rate": 0.9375,
+        "average_latency_ms": 9636.214,
+        "average_tool_calls": 2.688,
+        "case_count": 16,
+        "category_accuracy": 0.9375,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 53926,
+        "total_model_api_calls": 57,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 7828
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.533,
+        "average_tool_calls": 1.875,
+        "case_count": 16,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "split:development": {
+      "agent": {
+        "appropriate_behavior_rate": 0.9375,
+        "average_latency_ms": 9636.214,
+        "average_tool_calls": 2.688,
+        "case_count": 16,
+        "category_accuracy": 0.9375,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 53926,
+        "total_model_api_calls": 57,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 7828
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 1.533,
+        "average_tool_calls": 1.875,
+        "case_count": 16,
+        "category_accuracy": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    }
+  },
+  "seed": 20260922
+}

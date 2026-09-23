@@ -89,7 +89,7 @@ class AgentTest(unittest.TestCase):
                 Uncertainty.HIGH,
             ),
         ])
-        result = investigate(self.provider, valid, "healthy_001")
+        result = investigate(self.provider, valid, "ambiguous_001")
         self.assertEqual(result.report.evidence_references[0].reference_id, "tool-1")
 
         invalid = ScriptedModel([
@@ -102,7 +102,7 @@ class AgentTest(unittest.TestCase):
                 Uncertainty.LOW,
             ),
         ])
-        result = investigate(self.provider, invalid, "healthy_001")
+        result = investigate(self.provider, invalid, "ambiguous_001")
         self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
         self.assertEqual(result.report.uncertainty, Uncertainty.HIGH)
         self.assertEqual(result.trace[-1].kind, "validation_error")
@@ -124,6 +124,15 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
         self.assertEqual(result.trace[-1].kind, "model_error")
         self.assertEqual(result.report.evidence_references, ())
+
+    def test_healthy_summary_guardrail_stops_before_another_model_call(self):
+        model = ScriptedModel([ToolRequest("get_run_summary", {})])
+        result = investigate(self.provider, model, "healthy_001")
+        self.assertEqual(result.report.root_cause_category, RootCauseCategory.UNKNOWN)
+        self.assertEqual(result.report.uncertainty, Uncertainty.LOW)
+        self.assertEqual(result.model_step_count, 1)
+        self.assertEqual(result.tool_call_count, 1)
+        self.assertEqual(result.trace[-1].kind, "guardrail_report")
 
     def test_report_schema_rejects_invalid_values_and_execution_claim(self):
         with self.assertRaisesRegex(ValueError, "root_cause_category"):
