@@ -110,6 +110,8 @@ Benchmark v2 adds a separate shortcut-resistant suite rather than rewriting thes
 
 An initial unchanged-prompt Terra sample over four v2 development cases scored `50%` category accuracy, `75%` cause accuracy, and `75%` evidence sufficiency. Review showed one tool-selection miss and one ambiguous category boundary despite a correct causal explanation. All four cases used the complete four-call budget. The snapshot is preserved without reruns; v2 heldout remains unused.
 
+After clarifying category boundaries, tool choice for opaque checks, and evidence-triggered stopping, the same four-case sample reached `100%` category accuracy and evidence sufficiency while using 14 rather than 16 API calls. The full 12-case v2 development result is `91.67%` category accuracy, `83.33%` automated cause accuracy, and `100%` evidence validity across 38 API calls. Manual review identified one category-policy disagreement and several false negatives from the keyword/tool-based scorers. Heldout remains unused while those scoring rules are reviewed.
+
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
 OpenAI evaluation is explicit and opt-in. Start with one development case because each selected case can use up to the configured API-call budget:
@@ -139,4 +141,4 @@ Do not tune from held-out errors. After reviewing two failed **development** cas
 
 ### Hands-on checkpoint
 
-The chosen policy is **continue within budget**: after finding the primary blocker, the investigator may spend a remaining bounded call to look for additional anomalies. Run `.venv/bin/python -m incident_pipeline.agent failed_001` and walk through the trace. Explain why `compare_schema` follows `get_run_summary`, why `profile_table` follows the schema mismatch, and why the final report does not claim that the duplicate ID caused the transform failure.
+The Milestone 2 deterministic teaching adapter demonstrates **continue within budget**: after finding the primary blocker, it spends a bounded call to look for an additional anomaly. The v2 Terra policy now uses **evidence-triggered stopping**: it investigates an additional issue only when an observation specifically suggests one. Run `.venv/bin/python -m incident_pipeline.agent failed_001` to study the earlier policy, then compare it with the saved v2 Terra traces.

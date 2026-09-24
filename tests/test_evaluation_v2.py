@@ -8,6 +8,7 @@ from pathlib import Path
 from incident_pipeline.agent import DeterministicLearningAdapter
 from incident_pipeline.evaluate_v2 import evaluate_cases_v2
 from incident_pipeline.evaluation_cases_v2 import CASES_V2, generate_evaluation_cases_v2
+from incident_pipeline.merge_evaluations_v2 import merge_results_v2
 
 
 class EvaluationV2Test(unittest.TestCase):
@@ -82,6 +83,39 @@ class EvaluationV2Test(unittest.TestCase):
         self.assertGreater(overall["agent"]["cause_accuracy"], overall["baseline"]["cause_accuracy"])
         self.assertEqual(overall["agent"]["evidence_validity_rate"], 1.0)
         self.assertEqual(overall["agent"]["average_latency_ms"], 1.0)
+
+    def test_merge_rejects_mixed_revisions_and_preserves_v2_order(self):
+        ticks = count()
+        first = evaluate_cases_v2(
+            self.artifacts,
+            CASES_V2[:2],
+            DeterministicLearningAdapter,
+            adapter_name="deterministic-learning-adapter",
+            agent_revision="revision-a",
+            clock=lambda: next(ticks) / 1_000,
+        )
+        second = evaluate_cases_v2(
+            self.artifacts,
+            CASES_V2[2:4],
+            DeterministicLearningAdapter,
+            adapter_name="deterministic-learning-adapter",
+            agent_revision="revision-a",
+            clock=lambda: next(ticks) / 1_000,
+        )
+        first_path = self.root / "first.json"
+        second_path = self.root / "second.json"
+        first_path.write_text(json.dumps(first), encoding="utf-8")
+        second_path.write_text(json.dumps(second), encoding="utf-8")
+
+        merged = merge_results_v2([first_path, second_path])
+        self.assertEqual([row["run_id"] for row in merged["cases"]], [case.run_id for case in CASES_V2[:4]])
+        self.assertEqual(merged["case_count"], 4)
+        self.assertEqual(len(merged["source_results"]), 2)
+
+        second["agent_revision"] = "revision-b"
+        second_path.write_text(json.dumps(second), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "incompatible agent revision"):
+            merge_results_v2([first_path, second_path])
 
 
 if __name__ == "__main__":

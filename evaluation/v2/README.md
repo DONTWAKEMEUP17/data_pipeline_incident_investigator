@@ -108,3 +108,68 @@ The sample does not yet justify a general router. It points first to a narrower 
 这个样本暂时不能证明需要完整 router。更直接的问题是 tool selection、category taxonomy 和 stopping policy。
 
 The exact unchanged snapshot is `results/openai_development_sample_initial.json`. Exact dollar cost remains `null`; the adapter records calls and tokens without hard-coding model pricing.
+
+## After taxonomy, tool-policy, and stopping changes / Policy 修改后
+
+Prompt fingerprint `a1d6208621a5` introduced three development-only policy changes:
+
+1. Stale reference data used by a lookup belongs to `join_reference`; `freshness_volume` is reserved for the primary input batch.
+2. After a successful transform and opaque validation failure, read the validation log and then profile `orders_daily` when the log is inconclusive. Compare schema only when transform failed or evidence suggests a contract mismatch.
+3. Finish when the primary cause is grounded. Remaining budget alone does not justify searching for an additional anomaly.
+
+修改只涉及 prompt policy；v2 artifacts、labels 和 heldout cases 没有改变。
+
+The same four-case sample was run once after the change:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Category accuracy | 50% | 100% |
+| Automated cause accuracy | 75% | 75% |
+| Evidence validity | 100% | 100% |
+| Automated evidence sufficiency | 75% | 100% |
+| Appropriate behavior | 50% | 100% |
+| Average tool calls | 3 | 2.5 |
+| Average latency | 12.173 s | 8.163 s |
+| Model API calls | 16 | 14 |
+| Input tokens | 15,427 | 15,265 |
+| Output tokens | 2,462 | 1,717 |
+
+The tool-selection miss on `eval2_d003` was fixed. `eval2_d001` and `eval2_d007` now stop after two tool calls. `eval2_d012` remained correct but still used a final profile call. The automated cause scorer kept `eval2_d007` at false because the explanation gave the old reference date and missing refresh without using one of the scorer's accepted words such as “stale.” Manual review finds the cause grounded; the saved automated score was not rewritten after seeing the answer.
+
+Because the selected sample improved, the remaining eight development cases were run once and merged with it. No selected case was charged twice.
+
+| Full development metric | Symptom baseline | Terra agent |
+| --- | ---: | ---: |
+| Category accuracy | 33.33% | 91.67% |
+| Automated cause accuracy | 0% | 83.33% |
+| Evidence validity | 100% | 100% |
+| Automated evidence sufficiency | 25% | 66.67% |
+| Appropriate behavior | 16.67% | 91.67% |
+| Average tool calls | 1.917 | 2.25 |
+| Average latency | 1.063 ms | 6.765 s |
+| Model API calls | 0 | 38 |
+| Input tokens | 0 | 41,300 |
+| Output tokens | 0 | 4,636 |
+
+The only category/behavior error is `eval2_d008`: Terra described lowercase `c-101` as a primary-batch format violation and selected `data_quality`; the chosen benchmark taxonomy treats a customer-key comparison failure as `join_reference`.
+
+Manual review also found that the current evidence-sufficiency metric is too tool-specific. Four reports cited evidence that already contained the exact schema order, invalid amount value, input dates, or row-count threshold, but the scorer required an extra prescribed tool. Similarly, the automated cause scorer missed date-based explanations that did not contain an accepted adjective. These raw deterministic scores remain preserved. Before heldout evaluation, the scorer should be revised on development data to accept alternative evidence paths and then versioned separately.
+
+自动指标保留原始结果，没有为了提高分数而重写。人工检查认为 12 个报告的具体 cause 都有依据；真正剩余的 policy disagreement 是 `eval2_d008` 的单标签 taxonomy。
+
+Saved snapshots:
+
+- `results/openai_development_sample_after_policy.json`
+- `results/openai_development_remaining_after_policy.json`
+- `results/openai_development_after_policy.json`
+
+Reproduce the merge without API calls:
+
+```sh
+.venv/bin/python -m incident_pipeline.merge_evaluations_v2 \
+  evaluation/v2/results/openai_development_sample_after_policy.json \
+  evaluation/v2/results/openai_development_remaining_after_policy.json \
+  --output evaluation/v2/results/openai_development_after_policy.json
+```
+
+V2 heldout has not been evaluated. Exact dollar cost remains `null` because pricing is not hard-coded.

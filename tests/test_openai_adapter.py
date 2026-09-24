@@ -8,7 +8,12 @@ from incident_pipeline.agent import RootCauseCategory, Uncertainty, investigate
 from incident_pipeline.agent import ReportDraft as AgentReportDraft
 from incident_pipeline.contracts import ReportDraft as ContractReportDraft
 from incident_pipeline.evidence import LocalArtifactProvider
-from incident_pipeline.openai_adapter import DecisionEnvelope, FinalDecisionEnvelope, OpenAIModelAdapter
+from incident_pipeline.openai_adapter import (
+    SYSTEM_INSTRUCTIONS,
+    DecisionEnvelope,
+    FinalDecisionEnvelope,
+    OpenAIModelAdapter,
+)
 from incident_pipeline.pipeline import generate_runs
 
 
@@ -95,6 +100,12 @@ class OpenAIAdapterTest(unittest.TestCase):
             OpenAIModelAdapter("test-model", client=client, max_api_calls=7)
         with self.assertRaisesRegex(ValueError, "max_output_tokens"):
             OpenAIModelAdapter("test-model", client=client, max_output_tokens=99)
+
+    def test_prompt_defines_taxonomy_tool_policy_and_evidence_triggered_stopping(self):
+        self.assertIn("stale reference snapshot", SYSTEM_INSTRUCTIONS)
+        self.assertIn("stale reference data belongs to join_reference", SYSTEM_INSTRUCTIONS)
+        self.assertIn("profile orders_daily before comparing schema", SYSTEM_INSTRUCTIONS)
+        self.assertIn("unused budget alone is not a reason", SYSTEM_INSTRUCTIONS)
 
 
 if __name__ == "__main__":

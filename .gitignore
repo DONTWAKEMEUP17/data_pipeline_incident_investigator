@@ -20,3 +20,6 @@ evaluation/v2/artifacts/
 evaluation/v2/results/*.json
 !evaluation/v2/results/local_development.json
 !evaluation/v2/results/openai_development_sample_initial.json
+!evaluation/v2/results/openai_development_sample_after_policy.json
+!evaluation/v2/results/openai_development_remaining_after_policy.json
+!evaluation/v2/results/openai_development_after_policy.json
