@@ -23,3 +23,6 @@ evaluation/v2/results/*.json
 !evaluation/v2/results/openai_development_sample_after_policy.json
 !evaluation/v2/results/openai_development_remaining_after_policy.json
 !evaluation/v2/results/openai_development_after_policy.json
+!evaluation/v2/results/openai_development_sample_initial_scorer_v2_1.json
+!evaluation/v2/results/openai_development_sample_after_policy_scorer_v2_1.json
+!evaluation/v2/results/openai_development_after_policy_scorer_v2_1.json

@@ -112,6 +112,8 @@ An initial unchanged-prompt Terra sample over four v2 development cases scored `
 
 After clarifying category boundaries, tool choice for opaque checks, and evidence-triggered stopping, the same four-case sample reached `100%` category accuracy and evidence sufficiency while using 14 rather than 16 API calls. The full 12-case v2 development result is `91.67%` category accuracy, `83.33%` automated cause accuracy, and `100%` evidence validity across 38 API calls. Manual review identified one category-policy disagreement and several false negatives from the keyword/tool-based scorers. Heldout remains unused while those scoring rules are reviewed.
 
+Scorer revision `content-entailment-v2.1` now evaluates only cited evidence content and accepts multiple deterministic wording and evidence paths. Rescoring the saved traces requires no API calls and gives the full Terra development run `100%` cause accuracy and `100%` evidence sufficiency; category accuracy remains `91.67%` because the `eval2_d008` taxonomy disagreement is unchanged. The original result snapshots remain preserved, and v2 heldout is still unused.
+
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
 OpenAI evaluation is explicit and opt-in. Start with one development case because each selected case can use up to the configured API-call budget:

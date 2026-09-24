@@ -173,3 +173,55 @@ Reproduce the merge without API calls:
 ```
 
 V2 heldout has not been evaluated. Exact dollar cost remains `null` because pricing is not hard-coded.
+
+## Scorer v2.1 / 内容证据评分
+
+The original scorer treated one prescribed tool list as the only sufficient evidence path and used one keyword path for each cause. Development review showed false negatives: a summary or log could already contain the exact values needed for the conclusion, and two explicit dates could establish staleness without the adjective “stale.”
+
+Scorer revision `content-entailment-v2.1` makes these changes without calling a model:
+
+- It concatenates only the tool results actually cited by the report.
+- It checks that the cited content contains the concepts needed to support the expected cause.
+- It allows several deterministic phrase paths for the same cause, such as `stale reference` or the old snapshot date plus the current batch date and missing refresh.
+- It accepts a complete summary or log as sufficient; it does not require an extra profile or sample merely because a specific tool was listed in the original case design.
+- It records `scorer_revision` in every new result, and the merger rejects incompatible scorer revisions.
+
+V2.1 仍然是透明、确定的 heuristic，而不是 LLM judge。它减少了对单个关键词和固定 tool sequence 的依赖，但仍不能理解任意自然语言。
+
+The saved model traces were rescored locally. Original result files remain unchanged.
+
+| Four-case sample | Before policy | After policy |
+| --- | ---: | ---: |
+| Category accuracy | 50% | 100% |
+| Cause accuracy | 75% | 100% |
+| Evidence validity | 100% | 100% |
+| Evidence sufficiency | 75% | 100% |
+| Appropriate behavior | 50% | 100% |
+
+| Full 12-case development metric | Symptom baseline | Terra agent |
+| --- | ---: | ---: |
+| Category accuracy | 33.33% | 91.67% |
+| Cause accuracy | 0% | 100% |
+| Evidence validity | 100% | 100% |
+| Evidence sufficiency | 83.33% | 100% |
+| Appropriate behavior | 16.67% | 91.67% |
+
+High baseline evidence sufficiency does not mean the baseline diagnosed the cause. It means its cited log excerpt often contains enough raw facts; its `0%` cause accuracy shows that it did not turn those facts into a concrete diagnosis.
+
+Rescore saved results with no API calls:
+
+```sh
+.venv/bin/python -m incident_pipeline.rescore_v2 \
+  evaluation/v2/results/openai_development_sample_initial.json \
+  --output evaluation/v2/results/openai_development_sample_initial_scorer_v2_1.json
+
+.venv/bin/python -m incident_pipeline.rescore_v2 \
+  evaluation/v2/results/openai_development_sample_after_policy.json \
+  --output evaluation/v2/results/openai_development_sample_after_policy_scorer_v2_1.json
+
+.venv/bin/python -m incident_pipeline.rescore_v2 \
+  evaluation/v2/results/openai_development_after_policy.json \
+  --output evaluation/v2/results/openai_development_after_policy_scorer_v2_1.json
+```
+
+The canonical v2.1 development result is `results/openai_development_after_policy_scorer_v2_1.json`. Heldout remains unused.

@@ -22,7 +22,9 @@ def merge_results_v2(paths: Iterable[Path]) -> dict[str, Any]:
     expected = {case.run_id: case for case in CASES_V2}
     adapter: str | None = None
     agent_revision: str | None = None
+    scorer_revision: str | None = None
     revision_initialized = False
+    scorer_initialized = False
     records: dict[str, dict[str, Any]] = {}
     for path in source_paths:
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -37,6 +39,12 @@ def merge_results_v2(paths: Iterable[Path]) -> dict[str, Any]:
             revision_initialized = True
         elif document.get("agent_revision") != agent_revision:
             raise ValueError(f"incompatible agent revision in {path}")
+        document_scorer = document.get("scorer_revision", "legacy-tool-list-v2.0")
+        if not scorer_initialized:
+            scorer_revision = document_scorer
+            scorer_initialized = True
+        elif document_scorer != scorer_revision:
+            raise ValueError(f"incompatible scorer revision in {path}")
 
         for record in document.get("cases", []):
             run_id = record.get("run_id")
@@ -55,7 +63,14 @@ def merge_results_v2(paths: Iterable[Path]) -> dict[str, Any]:
     if not adapter:
         raise ValueError("v2 result files do not identify an adapter")
     ordered = [records[case.run_id] for case in CASES_V2 if case.run_id in records]
-    merged = build_result_v2(adapter, ordered, agent_revision=agent_revision)
+    if not scorer_revision:
+        raise ValueError("v2 result files do not identify a scorer revision")
+    merged = build_result_v2(
+        adapter,
+        ordered,
+        agent_revision=agent_revision,
+        scorer_revision=scorer_revision,
+    )
     merged["source_results"] = [str(path) for path in source_paths]
     return merged
 

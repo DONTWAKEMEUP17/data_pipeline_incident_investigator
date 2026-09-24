@@ -9,6 +9,8 @@ from incident_pipeline.agent import DeterministicLearningAdapter
 from incident_pipeline.evaluate_v2 import evaluate_cases_v2
 from incident_pipeline.evaluation_cases_v2 import CASES_V2, generate_evaluation_cases_v2
 from incident_pipeline.merge_evaluations_v2 import merge_results_v2
+from incident_pipeline.rescore_v2 import rescore_document_v2
+from incident_pipeline.scorer_v2 import SCORER_REVISION
 
 
 class EvaluationV2Test(unittest.TestCase):
@@ -74,6 +76,7 @@ class EvaluationV2Test(unittest.TestCase):
             clock=lambda: next(ticks) / 1_000,
         )
         self.assertEqual(result["benchmark"], "local_incidents_v2")
+        self.assertEqual(result["scorer_revision"], SCORER_REVISION)
         self.assertEqual(result["case_count"], 12)
         self.assertTrue(all(row["split"] == "development" for row in result["cases"]))
         overall = result["metrics"]["overall"]
@@ -116,6 +119,88 @@ class EvaluationV2Test(unittest.TestCase):
         second_path.write_text(json.dumps(second), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "incompatible agent revision"):
             merge_results_v2([first_path, second_path])
+
+        second["agent_revision"] = "revision-a"
+        second["scorer_revision"] = "different-scorer"
+        second_path.write_text(json.dumps(second), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "incompatible scorer revision"):
+            merge_results_v2([first_path, second_path])
+
+    def test_rescorer_accepts_grounded_date_comparison_without_stale_keyword(self):
+        case = next(case for case in CASES_V2 if case.run_id == "eval2_d007")
+        record = {
+            "run_id": case.run_id,
+            "split": case.split,
+            "family": case.family,
+            "variant": case.variant,
+            "expected_category": case.expected_category,
+            "expected_behavior": case.expected_behavior,
+            "expected_cause": case.expected_cause,
+            "required_evidence_tools": list(case.required_evidence_tools),
+            "baseline": {
+                "prediction": "unknown", "tool_calls": 2, "latency_ms": 1.0,
+                "output": {"finding": "Validation failed: gate_17", "source": "validate",
+                           "log_excerpt": [{"number": 1, "text": "generic failure"}]},
+            },
+            "agent": {
+                "prediction": "join_reference", "tool_calls": 2, "model_steps": 3,
+                "latency_ms": 10.0, "model_api_calls": 3, "model_input_tokens": 100,
+                "model_output_tokens": 50, "model_cost_usd": None,
+                "report": {
+                    "root_cause_category": "join_reference",
+                    "explanation": (
+                        "The reference snapshot is dated 2026-09-14 while the order batch is "
+                        "dated 2026-09-21, and the current reference refresh is missing."
+                    ),
+                    "evidence_references": [{"reference_id": "tool-1", "claim": "Dates differ."}],
+                    "proposed_human_action": "Refresh the reference.", "uncertainty": "low",
+                    "changes_made": False,
+                },
+                "trace": [{
+                    "step": 2, "kind": "tool_result", "detail": {
+                        "reference_id": "tool-1", "tool": "read_stage_log", "error": None,
+                        "output": {"lines": [
+                            {"text": "Reference snapshot dated 2026-09-14."},
+                            {"text": "Order batch dated 2026-09-21; current reference refresh is missing."},
+                        ]},
+                    },
+                }],
+            },
+        }
+        document = {
+            "benchmark": "local_incidents_v2", "seed": 20260923,
+            "adapter": "test", "agent_revision": "test-prompt", "cases": [record],
+        }
+        rescored = rescore_document_v2(document)
+        agent = rescored["cases"][0]["agent"]
+        self.assertEqual(rescored["scorer_revision"], SCORER_REVISION)
+        self.assertTrue(agent["cause_identified"])
+        self.assertTrue(agent["evidence_sufficient"])
+
+    def test_rescorer_accepts_log_that_contains_complete_volume_evidence(self):
+        source = evaluate_cases_v2(
+            self.artifacts,
+            [next(case for case in CASES_V2 if case.run_id == "eval2_d010")],
+            DeterministicLearningAdapter,
+            adapter_name="deterministic-learning-adapter",
+            agent_revision="test",
+        )
+        record = source["cases"][0]
+        record["agent"]["prediction"] = "freshness_volume"
+        record["agent"]["report"]["root_cause_category"] = "freshness_volume"
+        record["agent"]["report"]["explanation"] = "The batch has 1 row, below the minimum of 3 rows."
+        record["agent"]["report"]["uncertainty"] = "low"
+        record["agent"]["report"]["evidence_references"] = [
+            {"reference_id": "tool-log", "claim": "The log states the threshold and observed count."}
+        ]
+        record["agent"]["trace"].append({
+            "step": 3, "kind": "tool_result", "detail": {
+                "reference_id": "tool-log", "tool": "read_stage_log", "error": None,
+                "output": {"lines": [{"text": "Requires minimum 3 rows; current batch contains 1 row."}]},
+            },
+        })
+        rescored = rescore_document_v2(source)
+        self.assertTrue(rescored["cases"][0]["agent"]["evidence_sufficient"])
 
 
 if __name__ == "__main__":

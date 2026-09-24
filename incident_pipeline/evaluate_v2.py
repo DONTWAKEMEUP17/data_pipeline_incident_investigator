@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from .agent import DeterministicLearningAdapter, ModelAdapter, investigate
-from .baseline import BaselineResult, run_baseline
+from .baseline import run_baseline
 from .contracts import jsonable
 from .evaluate import _baseline_category
 from .evaluation_cases_v2 import (
@@ -22,48 +22,7 @@ from .evaluation_cases_v2 import (
     generate_evaluation_cases_v2,
 )
 from .evidence import LocalArtifactProvider
-
-
-def _behavior_correct(case: V2CaseSpec, prediction: str, uncertainty: str | None = None) -> bool:
-    if case.expected_behavior == "diagnose":
-        return prediction == case.expected_category and prediction != "unknown"
-    if case.expected_behavior == "abstain":
-        return prediction == "unknown" and uncertainty == "high"
-    return prediction == "unknown" and uncertainty == "low"
-
-
-def _cause_terms_match(text: str, case: V2CaseSpec) -> bool:
-    lowered = text.lower()
-    return bool(case.cause_terms) and all(
-        any(term.lower() in lowered for term in alternatives)
-        for alternatives in case.cause_terms
-    )
-
-
-def _agent_evidence(agent_result: Any, required_tools: tuple[str, ...]) -> tuple[bool, bool]:
-    returned = {
-        event.detail["reference_id"]: event.detail["tool"]
-        for event in agent_result.trace
-        if event.kind == "tool_result" and "reference_id" in event.detail
-    }
-    cited = {reference.reference_id for reference in agent_result.report.evidence_references}
-    valid = bool(cited) and cited.issubset(returned)
-    cited_tools = {returned[reference] for reference in cited if reference in returned}
-    sufficient = valid and set(required_tools).issubset(cited_tools)
-    return valid, sufficient
-
-
-def _baseline_evidence(
-    case: V2CaseSpec,
-    result: BaselineResult,
-) -> tuple[bool, bool]:
-    if case.expected_behavior == "healthy":
-        valid = result.source is None and not result.log_excerpt
-        used_tools = {"get_run_summary"}
-    else:
-        valid = result.source in {"ingest", "transform", "validate"} and bool(result.log_excerpt)
-        used_tools = {"get_run_summary", "read_stage_log"}
-    return valid, valid and set(case.required_evidence_tools).issubset(used_tools)
+from .scorer_v2 import SCORER_REVISION, score_record
 
 
 def _duration_ms(start: float, end: float) -> float:
@@ -99,21 +58,7 @@ def evaluate_cases_v2(
         )
         agent_end = clock()
 
-        baseline_prediction = _baseline_category(baseline)
-        agent_prediction = agent.report.root_cause_category.value
-        baseline_behavior = _behavior_correct(case, baseline_prediction, None)
-        agent_behavior = _behavior_correct(case, agent_prediction, agent.report.uncertainty.value)
-        baseline_valid, baseline_sufficient = _baseline_evidence(case, baseline)
-        agent_valid, agent_sufficient = _agent_evidence(agent, case.required_evidence_tools)
-        baseline_cause = (
-            _cause_terms_match(baseline.finding, case)
-            if case.expected_behavior == "diagnose" else baseline_behavior
-        )
-        agent_cause = (
-            _cause_terms_match(agent.report.explanation, case)
-            if case.expected_behavior == "diagnose" else agent_behavior
-        )
-        records.append({
+        record = {
             "run_id": case.run_id,
             "split": case.split,
             "family": case.family,
@@ -123,23 +68,13 @@ def evaluate_cases_v2(
             "expected_cause": case.expected_cause,
             "required_evidence_tools": list(case.required_evidence_tools),
             "baseline": {
-                "prediction": baseline_prediction,
-                "category_correct": baseline_prediction == case.expected_category,
-                "cause_identified": baseline_cause,
-                "evidence_valid": baseline_valid,
-                "evidence_sufficient": baseline_sufficient,
-                "behavior_correct": baseline_behavior,
+                "prediction": _baseline_category(baseline),
                 "tool_calls": 1 + int(baseline.source is not None),
                 "latency_ms": _duration_ms(baseline_start, baseline_end),
                 "output": asdict(baseline),
             },
             "agent": {
-                "prediction": agent_prediction,
-                "category_correct": agent_prediction == case.expected_category,
-                "cause_identified": agent_cause,
-                "evidence_valid": agent_valid,
-                "evidence_sufficient": agent_sufficient,
-                "behavior_correct": agent_behavior,
+                "prediction": agent.report.root_cause_category.value,
                 "tool_calls": agent.tool_call_count,
                 "model_steps": agent.model_step_count,
                 "latency_ms": _duration_ms(agent_start, agent_end),
@@ -150,7 +85,8 @@ def evaluate_cases_v2(
                 "report": jsonable(agent.report),
                 "trace": jsonable(agent.trace),
             },
-        })
+        }
+        records.append(score_record(record, case))
     return build_result_v2(adapter_name, records, agent_revision=agent_revision)
 
 
@@ -215,12 +151,14 @@ def build_result_v2(
     records: list[dict[str, Any]],
     *,
     agent_revision: str | None = None,
+    scorer_revision: str = SCORER_REVISION,
 ) -> dict[str, Any]:
     return {
         "benchmark": BENCHMARK_NAME,
         "seed": EVALUATION_SEED_V2,
         "adapter": adapter_name,
         "agent_revision": agent_revision,
+        "scorer_revision": scorer_revision,
         "case_count": len(records),
         "metrics": _metrics(records),
         "error_review": _error_review(records),
