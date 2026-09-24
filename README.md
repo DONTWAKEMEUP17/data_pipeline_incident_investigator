@@ -126,6 +126,18 @@ A candidate is marked verified only when it resolves all unmatched keys, preserv
 
 The saved proposal is `evaluation/v2/remediation/eval2_d008.json`. For the synthetic case, `UPPER(TRIM(customer_id))` changes `c-101` to `C-101`, reduces unmatched keys from one to zero, keeps three rows, and creates no collision. A human still confirms that customer IDs are semantically case-insensitive before changing the real pipeline contract.
 
+The same verifier is available to the OpenAI investigator as an opt-in typed tool. It uses a separate prompt revision, requires the summary, validation log, and `orders_daily` row evidence first, and still runs only the fixed sandbox candidates:
+
+```sh
+.venv/bin/python -m incident_pipeline.agent eval2_d008 \
+  --artifacts-dir evaluation/v2/artifacts \
+  --adapter openai --model gpt-5.6-terra \
+  --max-api-calls 5 --max-output-tokens 700 --reasoning-effort low \
+  --enable-remediation
+```
+
+The report may cite a verified candidate and request human approval. The tool cannot apply the candidate, write to the saved DuckDB database, or edit the source CSV.
+
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
 OpenAI evaluation is explicit and opt-in. Start with one development case because each selected case can use up to the configured API-call budget:

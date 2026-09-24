@@ -73,9 +73,9 @@ The lower category scores are expected: generic check IDs break the v1 name-to-c
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Do not use `--unlock-heldout` while tuning. The six heldout cases have been generated, but neither Terra nor the local v2 evaluation result has run them.
+Do not use `--unlock-heldout` while tuning. The six heldout cases were run once only after the prompt and scorer were frozen, as recorded below.
 
-调参期间不要使用 `--unlock-heldout`。当前保存的 v2 result 只包含 development cases，尚未对 v2 heldout 运行 Terra 或本地 evaluator。
+调参期间不要使用 `--unlock-heldout`。六个 heldout cases 只在 prompt 和 scorer 冻结后运行了一次，结果记录如下。
 
 ## Initial Terra development sample / Terra 初始样本
 
@@ -172,7 +172,7 @@ Reproduce the merge without API calls:
   --output evaluation/v2/results/openai_development_after_policy.json
 ```
 
-V2 heldout has not been evaluated. Exact dollar cost remains `null` because pricing is not hard-coded.
+At this stage of the chronology, v2 heldout had not yet been evaluated. Exact dollar cost remains `null` because pricing is not hard-coded.
 
 ## Scorer v2.1 / 内容证据评分
 
@@ -224,7 +224,34 @@ Rescore saved results with no API calls:
   --output evaluation/v2/results/openai_development_after_policy_scorer_v2_1.json
 ```
 
-The canonical v2.1 development result is `results/openai_development_after_policy_scorer_v2_1.json`. Heldout remains unused.
+The canonical v2.1 development result before the final taxonomy clarification is `results/openai_development_after_policy_scorer_v2_1.json`.
+
+## Frozen prompt and one-time heldout result / 冻结后的 heldout 结果
+
+The final development-only clarification assigns casing or surrounding-whitespace mismatches to `join_reference` when the value fails only relative to the canonical lookup representation. A value that is invalid independently of lookup remains `data_quality`. Prompt fingerprint `f3673a8d69f1` and scorer revision `content-entailment-v2.1` were then frozen.
+
+`eval2_d008` was run once as the development checkpoint. It correctly selected `join_reference` and passed cause, evidence-validity, evidence-sufficiency, and behavior scoring. The six heldout cases were then evaluated exactly once with Terra, with no retries or post-heldout tuning.
+
+| Heldout metric (6 cases) | Symptom baseline | Terra agent |
+| --- | ---: | ---: |
+| Category accuracy | 50% | 83.33% |
+| Cause accuracy | 0% | 100% |
+| Evidence validity | 100% | 100% |
+| Evidence sufficiency | 83.33% | 100% |
+| Appropriate behavior | 16.67% | 83.33% |
+| Average tool calls | 1.833 | 2.333 |
+| Model API calls | 0 | 19 |
+| Input tokens | 0 | 21,406 |
+| Output tokens | 0 | 2,326 |
+
+Five cases matched the expected category. In `eval2_h004`, Terra correctly explained that a weekday row threshold was applied to a scheduled weekend batch whose one row satisfied the weekend contract. It reported `unknown`, while the benchmark expected `freshness_volume`. This is preserved as a category and behavior miss. The report's concrete cause and evidence still scored correctly, and neither the prompt nor the heldout label was changed after observing it.
+
+Saved snapshots:
+
+- `results/openai_eval2_d008_after_taxonomy.json`
+- `results/openai_heldout_frozen.json`
+
+复核结果：Terra 在 heldout 的 6 个案例中有 5 个 category 正确，所有 6 个案例都找到了具体原因并引用了有效、充分的证据。唯一分歧是 weekend threshold 案例；结果按首次运行原样保留，没有重跑或针对 heldout 调参。
 
 ## Sandboxed remediation proposal / 修复建议
 
@@ -245,3 +272,7 @@ The verified synthetic result is saved in `remediation/eval2_d008.json`:
 - original artifacts changed: no
 
 The proposal records two assumptions for human review: the supplied reference is authoritative, and customer IDs are case-insensitive with insignificant surrounding whitespace. Collision or unresolved-lookup cases return `no_safe_candidate` with blockers instead of a verified repair.
+
+The OpenAI investigator can use this verifier through the explicit `--enable-remediation` flag. This mode has a separate prompt fingerprint, requires diagnostic evidence before the tool can run, and needs five model calls for the expected summary → log → rows → sandbox verification → report path. The frozen heldout result above used the ordinary investigation mode and is unaffected by this later integration.
+
+A live development smoke test with remediation prompt fingerprint `e9eefa029bec` followed that exact five-step path. It selected `upper_trim`, cited the sandbox checks, described the remaining assumptions, requested human approval, and reported `changes_made: false`. It used 5 API calls, 7,160 input tokens, and 734 reported output tokens; exact dollar cost remains `null`.

@@ -5,7 +5,29 @@ from pathlib import Path
 
 import duckdb
 
+from incident_pipeline.agent import investigate
+from incident_pipeline.contracts import (
+    EvidenceReference,
+    ReportDraft,
+    RootCauseCategory,
+    ToolRequest,
+    Uncertainty,
+)
+from incident_pipeline.evaluation_cases_v2 import generate_evaluation_cases_v2
+from incident_pipeline.evidence import LocalArtifactProvider
+from incident_pipeline.pipeline import FIXTURE_DIR
 from incident_pipeline.remediation import propose_customer_key_remediation
+
+
+class ScriptedRemediationModel:
+    name = "scripted-remediation-model"
+    cost_usd = 0.0
+
+    def __init__(self, decisions):
+        self.decisions = list(decisions)
+
+    def next_decision(self, run_id, observations):
+        return self.decisions.pop(0)
 
 
 class RemediationTest(unittest.TestCase):
@@ -85,6 +107,70 @@ class RemediationTest(unittest.TestCase):
         run_dir = self._run_dir([("O-201", "c-101")])
         with self.assertRaisesRegex(ValueError, "exactly one customer_id"):
             propose_customer_key_remediation("bad-reference", run_dir, bad_reference)
+
+    def test_agent_can_cite_verified_sandbox_candidate_without_changing_artifacts(self):
+        artifacts = self.root / "artifacts"
+        generate_evaluation_cases_v2(artifacts, self.root / "cases.json")
+        provider = LocalArtifactProvider(
+            artifacts,
+            allowed_run_ids=("eval2_d008",),
+            customer_reference_csv=FIXTURE_DIR / "customer_reference.csv",
+        )
+        run_dir = artifacts / "eval2_d008"
+        before = {path.relative_to(run_dir): path.read_bytes() for path in run_dir.rglob("*") if path.is_file()}
+        model = ScriptedRemediationModel([
+            ToolRequest("get_run_summary", {}),
+            ToolRequest("read_stage_log", {"stage": "validate", "max_lines": 5}),
+            ToolRequest("sample_rows", {"table": "orders_daily", "limit": 3}),
+            ToolRequest("verify_customer_key_normalization", {}),
+            ReportDraft(
+                RootCauseCategory.JOIN_REFERENCE,
+                "A casing-only customer-key mismatch has a sandbox-verified normalization candidate.",
+                (EvidenceReference("tool-4", "The candidate resolved the mismatch without collisions."),),
+                "Confirm the key contract before approving a pipeline change.",
+                Uncertainty.LOW,
+            ),
+        ])
+
+        result = investigate(provider, model, "eval2_d008", max_model_steps=5)
+
+        after = {path.relative_to(run_dir): path.read_bytes() for path in run_dir.rglob("*") if path.is_file()}
+        remediation_result = next(
+            event.detail["output"]
+            for event in result.trace
+            if event.kind == "tool_result" and event.detail["tool"] == "verify_customer_key_normalization"
+        )
+        self.assertEqual(before, after)
+        self.assertEqual(result.report.root_cause_category, RootCauseCategory.JOIN_REFERENCE)
+        self.assertEqual(result.tool_call_count, 4)
+        self.assertEqual(remediation_result["status"], "verified_candidate")
+        self.assertTrue(remediation_result["approval_required"])
+        self.assertTrue(remediation_result["sandbox_only"])
+        self.assertFalse(remediation_result["changes_made"])
+
+    def test_agent_rejects_remediation_tool_before_diagnostic_evidence(self):
+        self._run_dir([("O-201", "c-101")])
+        provider = LocalArtifactProvider(
+            self.root,
+            allowed_run_ids=("run",),
+            customer_reference_csv=self.reference,
+        )
+        model = ScriptedRemediationModel([
+            ToolRequest("verify_customer_key_normalization", {}),
+            ReportDraft(
+                RootCauseCategory.UNKNOWN,
+                "Verification was rejected because diagnostic evidence was not collected first.",
+                (EvidenceReference("tool-1", "The verifier returned a precondition error."),),
+                "Collect the required evidence before proposing remediation.",
+                Uncertainty.HIGH,
+            ),
+        ])
+
+        result = investigate(provider, model, "run", max_model_steps=2)
+
+        tool_result = next(event for event in result.trace if event.kind == "tool_result")
+        self.assertIsNone(tool_result.detail["output"])
+        self.assertIn("requires a run summary", tool_result.detail["error"])
 
 
 if __name__ == "__main__":

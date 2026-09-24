@@ -27,13 +27,21 @@ from .contracts import (
     jsonable as _jsonable,
 )
 from .evidence import LocalArtifactProvider, RunEvidenceProvider
+from .pipeline import FIXTURE_DIR
 
 
 MAX_TOOL_CALLS = 5
 MAX_MODEL_STEPS = 6
 MAX_OBSERVATION_CHARS = 4_000
 ALLOWED_TOOLS = frozenset(
-    {"get_run_summary", "read_stage_log", "compare_schema", "profile_table", "sample_rows"}
+    {
+        "get_run_summary",
+        "read_stage_log",
+        "compare_schema",
+        "profile_table",
+        "sample_rows",
+        "verify_customer_key_normalization",
+    }
 )
 API_CREDENTIAL_PATTERN = re.compile(r"\b[a-z]{0,6}sk-[A-Za-z0-9*_.-]{8,}\b", re.IGNORECASE)
 
@@ -178,12 +186,46 @@ class DeterministicLearningAdapter:
         )
 
 
-def _execute_tool(provider: RunEvidenceProvider, run_id: str, request: ToolRequest) -> dict[str, Any]:
+def _remediation_evidence_ready(observations: Sequence[ToolObservation]) -> bool:
+    """Require diagnosis evidence before running even the read-only sandbox verifier."""
+    summary = _observation_for(observations, "get_run_summary")
+    validate_log = _observation_for(observations, "read_stage_log", stage="validate")
+    row_evidence = any(
+        item.tool in {"sample_rows", "profile_table"}
+        and item.arguments.get("table") == "orders_daily"
+        and item.output is not None
+        and item.error is None
+        for item in observations
+    )
+    return (
+        summary is not None
+        and summary.output is not None
+        and summary.error is None
+        and validate_log is not None
+        and validate_log.output is not None
+        and validate_log.error is None
+        and row_evidence
+    )
+
+
+def _execute_tool(
+    provider: RunEvidenceProvider,
+    run_id: str,
+    request: ToolRequest,
+    observations: Sequence[ToolObservation],
+) -> dict[str, Any]:
     if request.tool not in ALLOWED_TOOLS:
         raise ValueError(f"unknown tool: {request.tool!r}")
     arguments = dict(request.arguments)
     if "run_id" in arguments:
         raise ValueError("run_id is supplied by the investigation, not by the model")
+    if request.tool == "verify_customer_key_normalization":
+        if arguments:
+            raise ValueError("verify_customer_key_normalization does not accept arguments")
+        if not _remediation_evidence_ready(observations):
+            raise ValueError(
+                "customer-key verification requires a run summary, validation log, and orders_daily row evidence"
+            )
     method = getattr(provider, request.tool)
     return _jsonable(method(run_id, **arguments))
 
@@ -285,7 +327,7 @@ def investigate(
             break
         reference_id = f"tool-{len(observations) + 1}"
         try:
-            output = _execute_tool(provider, run_id, decision)
+            output = _execute_tool(provider, run_id, decision, observations)
             encoded = json.dumps(output, sort_keys=True)
             if len(encoded) > MAX_OBSERVATION_CHARS:
                 raise ValueError(f"tool output exceeds {MAX_OBSERVATION_CHARS} characters")
@@ -327,7 +369,22 @@ def main() -> None:
     parser.add_argument("--max-api-calls", type=int, default=4)
     parser.add_argument("--max-output-tokens", type=int, default=700)
     parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high"), default="low")
+    parser.add_argument(
+        "--enable-remediation",
+        action="store_true",
+        help="Enable the sandbox-only customer-key verification tool for v2 development artifacts",
+    )
+    parser.add_argument(
+        "--customer-reference-csv",
+        type=Path,
+        default=FIXTURE_DIR / "customer_reference.csv",
+    )
     args = parser.parse_args()
+    if args.enable_remediation:
+        from .remediation import DEVELOPMENT_RUN_IDS
+
+        if args.run_id not in DEVELOPMENT_RUN_IDS:
+            parser.error("--enable-remediation is limited to v2 development run IDs")
     if args.adapter == "openai":
         from .openai_adapter import OpenAIModelAdapter
 
@@ -339,12 +396,18 @@ def main() -> None:
             max_api_calls=args.max_api_calls,
             max_output_tokens=args.max_output_tokens,
             reasoning_effort=args.reasoning_effort,
+            enable_remediation=args.enable_remediation,
         )
         model_steps = args.max_api_calls
     else:
         model = DeterministicLearningAdapter()
         model_steps = MAX_MODEL_STEPS
-    result = investigate(LocalArtifactProvider(args.artifacts_dir), model, args.run_id,
+    provider = LocalArtifactProvider(
+        args.artifacts_dir,
+        allowed_run_ids=(args.run_id,) if args.enable_remediation else None,
+        customer_reference_csv=args.customer_reference_csv if args.enable_remediation else None,
+    )
+    result = investigate(provider, model, args.run_id,
                          max_model_steps=model_steps)
     print(json.dumps(_jsonable(result), indent=2))
 

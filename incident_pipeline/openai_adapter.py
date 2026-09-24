@@ -47,6 +47,19 @@ class DecisionEnvelope(BaseModel):
     uncertainty: Optional[Uncertainty]
 
 
+class RemediationDecisionEnvelope(DecisionEnvelope):
+    """Opt-in decision schema that exposes one fixed sandbox verification."""
+
+    tool: Optional[Literal[
+        "get_run_summary",
+        "read_stage_log",
+        "compare_schema",
+        "profile_table",
+        "sample_rows",
+        "verify_customer_key_normalization",
+    ]]
+
+
 class FinalDecisionEnvelope(BaseModel):
     """Final-only schema used on the last allowed API call."""
 
@@ -66,6 +79,8 @@ Use root-cause categories consistently. schema_drift means a table contract mism
 invalid, null, or duplicate values within the primary batch. join_reference means a lookup or reference-data
 failure, including a missing, mismatched, incomplete, or stale reference snapshot. freshness_volume means the
 primary input batch itself is stale, late, or outside an explicit volume threshold.
+Classify a source key as join_reference when it fails only because its casing or surrounding whitespace differs
+from the canonical reference representation. Use data_quality when the value is invalid independently of lookup.
 When transform succeeded but an opaque validation check failed, read the validation log. If that log does not
 ground the cause, profile orders_daily before comparing schema. Compare schema when transform failed or another
 observation specifically suggests a contract mismatch. Sample rows only when row values are needed to resolve a
@@ -81,6 +96,14 @@ or incorrect filter. A check explicitly described as uncertain or conflicting is
 Use freshness_volume only when concrete evidence establishes a stale primary input date or a breached input
 volume threshold; stale reference data belongs to join_reference.
 Never claim a fix ran."""
+
+REMEDIATION_INSTRUCTIONS = """
+An additional tool, verify_customer_key_normalization, is available in this explicitly enabled mode. Request it
+only after the observations ground a join/reference failure caused by customer-key casing or surrounding
+whitespace, and only after inspecting the run summary, validation log, and orders_daily row evidence. The tool
+tests fixed candidates in an in-memory sandbox; it does not edit source data or saved artifacts. After it returns,
+finish with a report that cites its result, distinguishes a verified candidate from an applied fix, states the
+remaining assumptions, and asks for human approval before any pipeline change."""
 
 PROMPT_FINGERPRINT = hashlib.sha256(SYSTEM_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
 
@@ -99,18 +122,25 @@ class OpenAIModelAdapter:
         max_api_calls: int = 4,
         max_output_tokens: int = 700,
         reasoning_effort: Literal["none", "low", "medium", "high"] = "low",
+        enable_remediation: bool = False,
         client: OpenAI | None = None,
     ) -> None:
         if not model.strip():
             raise ValueError("model must be explicitly selected")
         if not 1 <= max_api_calls <= MAX_API_CALLS:
             raise ValueError(f"max_api_calls must be from 1 to {MAX_API_CALLS}")
+        if enable_remediation and max_api_calls < 5:
+            raise ValueError("enable_remediation requires at least 5 API calls")
         if not 100 <= max_output_tokens <= MAX_OUTPUT_TOKENS:
             raise ValueError(f"max_output_tokens must be from 100 to {MAX_OUTPUT_TOKENS}")
         self.model = model
         self.max_api_calls = max_api_calls
         self.max_output_tokens = max_output_tokens
         self.reasoning_effort = reasoning_effort
+        self.enable_remediation = enable_remediation
+        self.prompt_fingerprint = hashlib.sha256(
+            (SYSTEM_INSTRUCTIONS + (REMEDIATION_INSTRUCTIONS if enable_remediation else "")).encode("utf-8")
+        ).hexdigest()[:12]
         self.client = client or OpenAI()
         self.api_calls = 0
         self.input_tokens = 0
@@ -135,8 +165,14 @@ class OpenAIModelAdapter:
             raise ValueError(f"model input exceeds {MAX_INPUT_CHARS} characters")
 
         must_finish = self.api_calls == self.max_api_calls - 1
-        response_format = FinalDecisionEnvelope if must_finish else DecisionEnvelope
+        response_format = (
+            FinalDecisionEnvelope
+            if must_finish
+            else (RemediationDecisionEnvelope if self.enable_remediation else DecisionEnvelope)
+        )
         instructions = SYSTEM_INSTRUCTIONS
+        if self.enable_remediation:
+            instructions += REMEDIATION_INSTRUCTIONS
         if must_finish:
             instructions += "\nThis is the last allowed API call. Return the best grounded final report now; use unknown if needed."
         response = self.client.responses.parse(
@@ -192,6 +228,8 @@ class OpenAIModelAdapter:
             if decision.table is None:
                 raise ValueError(f"{decision.tool} requires table")
             return {"table": decision.table}
+        if decision.tool == "verify_customer_key_normalization":
+            return {}
         if decision.table is None:
             raise ValueError("sample_rows requires table")
         return {"table": decision.table, "limit": decision.limit or 3}

@@ -1,0 +1,351 @@
+{
+  "adapter": "openai:gpt-5.6-terra",
+  "agent_revision": "f3673a8d69f1",
+  "benchmark": "local_incidents_v2",
+  "case_count": 1,
+  "cases": [
+    {
+      "agent": {
+        "behavior_correct": true,
+        "category_correct": true,
+        "cause_identified": true,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 12020.376,
+        "model_api_calls": 4,
+        "model_cost_usd": null,
+        "model_input_tokens": 4694,
+        "model_output_tokens": 506,
+        "model_steps": 4,
+        "prediction": "join_reference",
+        "report": {
+          "changes_made": false,
+          "evidence_references": [
+            {
+              "claim": "Validation failed solely at gate_17, with one failing record; ingest and transform both succeeded for 3 rows.",
+              "reference_id": "tool-1"
+            },
+            {
+              "claim": "gate_17 performs a case-sensitive comparison against canonical uppercase customer keys and reports one nonmatching source value.",
+              "reference_id": "tool-2"
+            },
+            {
+              "claim": "The sampled rows show customer_id \"c-101\" in lowercase, whereas the other customer IDs use uppercase C.",
+              "reference_id": "tool-3"
+            }
+          ],
+          "explanation": "The primary blocker is gate_17: one source customer key fails a case-sensitive comparison to canonical uppercase customer keys. The sampled batch identifies customer_id \"c-101\" as the mismatched value, while the other sampled customer IDs are uppercase. This is a casing-only mismatch against the reference representation, so it is a reference join/key-normalization failure rather than independently invalid primary data.",
+          "proposed_human_action": "Review the canonical customer-key join/normalization policy and align the source key \"c-101\" with its canonical uppercase representation before validation; confirm the corresponding reference customer key exists. No fix was run.",
+          "root_cause_category": "join_reference",
+          "run_id": "eval2_d008",
+          "uncertainty": "low"
+        },
+        "tool_calls": 3,
+        "trace": [
+          {
+            "detail": {
+              "arguments": {},
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_request",
+            "step": 1
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "run_id": "eval2_d008",
+                "stages": {
+                  "ingest": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "transform": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "success"
+                  },
+                  "validate": {
+                    "error": null,
+                    "rows": 3,
+                    "status": "failed"
+                  }
+                },
+                "status": "failed",
+                "validation_checks": [
+                  {
+                    "name": "gate_01",
+                    "observed": 3,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_02",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_03",
+                    "observed": 0,
+                    "passed": true
+                  },
+                  {
+                    "name": "gate_17",
+                    "observed": 1,
+                    "passed": false
+                  }
+                ],
+                "validation_status": "failed"
+              },
+              "reference_id": "tool-1",
+              "tool": "get_run_summary"
+            },
+            "kind": "tool_result",
+            "step": 1
+          },
+          {
+            "detail": {
+              "arguments": {
+                "max_lines": 5,
+                "stage": "validate"
+              },
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_request",
+            "step": 2
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "lines": [
+                  {
+                    "number": 1,
+                    "text": "Completed 4 opaque checks; status=failed."
+                  },
+                  {
+                    "number": 2,
+                    "text": "gate_17 used a case-sensitive comparison against canonical uppercase customer keys."
+                  },
+                  {
+                    "number": 3,
+                    "text": "One source value did not match; inspect row values before changing the reference."
+                  }
+                ],
+                "run_id": "eval2_d008",
+                "stage": "validate",
+                "truncated": false
+              },
+              "reference_id": "tool-2",
+              "tool": "read_stage_log"
+            },
+            "kind": "tool_result",
+            "step": 2
+          },
+          {
+            "detail": {
+              "arguments": {
+                "limit": 3,
+                "table": "orders_daily"
+              },
+              "tool": "sample_rows"
+            },
+            "kind": "tool_request",
+            "step": 3
+          },
+          {
+            "detail": {
+              "error": null,
+              "output": {
+                "rows": [
+                  {
+                    "amount": "12.50",
+                    "customer_id": "c-101",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-201"
+                  },
+                  {
+                    "amount": "8.25",
+                    "customer_id": "C-102",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-202"
+                  },
+                  {
+                    "amount": "29.00",
+                    "customer_id": "C-103",
+                    "order_date": "2026-09-21",
+                    "order_id": "O-203"
+                  }
+                ],
+                "run_id": "eval2_d008",
+                "table": "orders_daily",
+                "truncated": false
+              },
+              "reference_id": "tool-3",
+              "tool": "sample_rows"
+            },
+            "kind": "tool_result",
+            "step": 3
+          },
+          {
+            "detail": {
+              "root_cause_category": "join_reference"
+            },
+            "kind": "final_report",
+            "step": 4
+          }
+        ]
+      },
+      "baseline": {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "evidence_valid": true,
+        "latency_ms": 0.198,
+        "output": {
+          "finding": "Validation failed: gate_17",
+          "log_excerpt": [
+            {
+              "number": 1,
+              "text": "Completed 4 opaque checks; status=failed."
+            },
+            {
+              "number": 2,
+              "text": "gate_17 used a case-sensitive comparison against canonical uppercase customer keys."
+            },
+            {
+              "number": 3,
+              "text": "One source value did not match; inspect row values before changing the reference."
+            }
+          ],
+          "run_id": "eval2_d008",
+          "source": "validate"
+        },
+        "prediction": "unknown",
+        "tool_calls": 2
+      },
+      "expected_behavior": "diagnose",
+      "expected_category": "join_reference",
+      "expected_cause": "customer_key_case_mismatch",
+      "family": "join_reference",
+      "required_evidence_tools": [
+        "read_stage_log",
+        "sample_rows"
+      ],
+      "run_id": "eval2_d008",
+      "split": "development",
+      "variant": "case-sensitive key mismatch"
+    }
+  ],
+  "error_review": {
+    "agent": [],
+    "baseline": [
+      {
+        "behavior_correct": false,
+        "category_correct": false,
+        "cause_identified": false,
+        "evidence_sufficient": true,
+        "expected_category": "join_reference",
+        "expected_cause": "customer_key_case_mismatch",
+        "family": "join_reference",
+        "predicted_category": "unknown",
+        "run_id": "eval2_d008"
+      }
+    ]
+  },
+  "metrics": {
+    "family:join_reference": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 12020.376,
+        "average_tool_calls": 3.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 4694,
+        "total_model_api_calls": 4,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 506
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.198,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "overall": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 12020.376,
+        "average_tool_calls": 3.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 4694,
+        "total_model_api_calls": 4,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 506
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.198,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    },
+    "split:development": {
+      "agent": {
+        "appropriate_behavior_rate": 1.0,
+        "average_latency_ms": 12020.376,
+        "average_tool_calls": 3.0,
+        "case_count": 1,
+        "category_accuracy": 1.0,
+        "cause_accuracy": 1.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 4694,
+        "total_model_api_calls": 4,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 506
+      },
+      "baseline": {
+        "appropriate_behavior_rate": 0.0,
+        "average_latency_ms": 0.198,
+        "average_tool_calls": 2.0,
+        "case_count": 1,
+        "category_accuracy": 0.0,
+        "cause_accuracy": 0.0,
+        "evidence_sufficiency_rate": 1.0,
+        "evidence_validity_rate": 1.0,
+        "total_input_tokens": 0,
+        "total_model_api_calls": 0,
+        "total_model_cost_usd": null,
+        "total_output_tokens": 0
+      }
+    }
+  },
+  "scorer_revision": "content-entailment-v2.1",
+  "seed": 20260923
+}

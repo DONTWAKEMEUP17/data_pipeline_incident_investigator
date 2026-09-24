@@ -13,6 +13,8 @@ from incident_pipeline.openai_adapter import (
     DecisionEnvelope,
     FinalDecisionEnvelope,
     OpenAIModelAdapter,
+    REMEDIATION_INSTRUCTIONS,
+    RemediationDecisionEnvelope,
 )
 from incident_pipeline.pipeline import generate_runs
 
@@ -81,6 +83,10 @@ class OpenAIAdapterTest(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         final_schema = to_strict_json_schema(FinalDecisionEnvelope)
         self.assertNotIn('"oneOf":', json.dumps(final_schema))
+        remediation_schema = to_strict_json_schema(RemediationDecisionEnvelope)
+        self.assertNotIn('"oneOf":', json.dumps(remediation_schema))
+        self.assertNotIn("verify_customer_key_normalization", encoded)
+        self.assertIn("verify_customer_key_normalization", json.dumps(remediation_schema))
 
     def test_tool_parameter_schema_rejects_out_of_bounds_sample_limit(self):
         decision = {
@@ -100,12 +106,39 @@ class OpenAIAdapterTest(unittest.TestCase):
             OpenAIModelAdapter("test-model", client=client, max_api_calls=7)
         with self.assertRaisesRegex(ValueError, "max_output_tokens"):
             OpenAIModelAdapter("test-model", client=client, max_output_tokens=99)
+        with self.assertRaisesRegex(ValueError, "at least 5 API calls"):
+            OpenAIModelAdapter("test-model", client=client, enable_remediation=True, max_api_calls=4)
 
     def test_prompt_defines_taxonomy_tool_policy_and_evidence_triggered_stopping(self):
         self.assertIn("stale reference snapshot", SYSTEM_INSTRUCTIONS)
         self.assertIn("stale reference data belongs to join_reference", SYSTEM_INSTRUCTIONS)
+        self.assertIn("casing or surrounding whitespace differs", SYSTEM_INSTRUCTIONS)
+        self.assertIn("invalid independently of lookup", SYSTEM_INSTRUCTIONS)
         self.assertIn("profile orders_daily before comparing schema", SYSTEM_INSTRUCTIONS)
         self.assertIn("unused budget alone is not a reason", SYSTEM_INSTRUCTIONS)
+
+    def test_remediation_tool_is_explicit_and_uses_a_separate_prompt_revision(self):
+        client = FakeClient([{
+            "kind": "tool", "tool": "verify_customer_key_normalization", "table": None, "stage": None,
+            "max_lines": None, "limit": None, "root_cause_category": None,
+            "explanation": None, "evidence_references": [],
+            "proposed_human_action": None, "uncertainty": None,
+        }])
+        base = OpenAIModelAdapter("test-model", client=FakeClient([]))
+        enabled = OpenAIModelAdapter(
+            "test-model",
+            client=client,
+            enable_remediation=True,
+            max_api_calls=5,
+        )
+
+        decision = enabled.next_decision("eval2_d008", ())
+
+        self.assertEqual(decision.tool, "verify_customer_key_normalization")
+        self.assertEqual(decision.arguments, {})
+        self.assertNotEqual(base.prompt_fingerprint, enabled.prompt_fingerprint)
+        self.assertIs(client.responses.calls[0]["text_format"], RemediationDecisionEnvelope)
+        self.assertIn(REMEDIATION_INSTRUCTIONS, client.responses.calls[0]["instructions"])
 
 
 if __name__ == "__main__":

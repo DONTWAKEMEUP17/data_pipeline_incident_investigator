@@ -102,6 +102,8 @@ class RunEvidenceProvider(Protocol):
 
     def sample_rows(self, run_id: str, table: str, limit: int = 3) -> RowSample: ...
 
+    def verify_customer_key_normalization(self, run_id: str) -> Any: ...
+
 
 def _bounded_text(value: Any, limit: int) -> str:
     text = str(value)
@@ -134,8 +136,10 @@ class LocalArtifactProvider:
         artifacts_dir: Path = Path("artifacts"),
         *,
         allowed_run_ids: Iterable[str] | None = None,
+        customer_reference_csv: Path | None = None,
     ) -> None:
         self.artifacts_dir = Path(artifacts_dir)
+        self.customer_reference_csv = Path(customer_reference_csv) if customer_reference_csv is not None else None
         self.allowed_runs = frozenset(
             allowed_run_ids if allowed_run_ids is not None else (run_id for run_id, _ in RUN_INPUTS)
         )
@@ -143,6 +147,18 @@ class LocalArtifactProvider:
             raise ValueError("allowed_run_ids must contain non-empty strings")
         self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         self.allowed_tables = frozenset(self.contract["tables"])
+
+    def verify_customer_key_normalization(self, run_id: str) -> Any:
+        """Run the fixed customer-key candidates in a disposable in-memory sandbox."""
+        if self.customer_reference_csv is None:
+            raise ValueError("customer-key remediation is not configured")
+        from .remediation import propose_customer_key_remediation
+
+        return propose_customer_key_remediation(
+            run_id,
+            self._run_dir(run_id),
+            self.customer_reference_csv,
+        )
 
     def _run_dir(self, run_id: str) -> Path:
         if not isinstance(run_id, str) or run_id not in self.allowed_runs:
