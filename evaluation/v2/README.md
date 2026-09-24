@@ -225,3 +225,23 @@ Rescore saved results with no API calls:
 ```
 
 The canonical v2.1 development result is `results/openai_development_after_policy_scorer_v2_1.json`. Heldout remains unused.
+
+## Sandboxed remediation proposal / 修复建议
+
+`incident_pipeline.remediation` turns the `eval2_d008` diagnosis into a concrete, reviewable candidate. It reads `orders_daily` from the saved database in read-only mode and evaluates fixed normalization expressions in an in-memory DuckDB database against `fixtures/customer_reference.csv`.
+
+```sh
+.venv/bin/python -m incident_pipeline.remediation eval2_d008
+```
+
+The verified synthetic result is saved in `remediation/eval2_d008.json`:
+
+- candidate: `UPPER(TRIM(customer_id))`
+- unmatched keys: 1 before, 0 after
+- rows: 3 before, 3 after
+- changed rows: 1
+- source normalization collisions: 0
+- reference duplicates: 0
+- original artifacts changed: no
+
+The proposal records two assumptions for human review: the supplied reference is authoritative, and customer IDs are case-insensitive with insignificant surrounding whitespace. Collision or unresolved-lookup cases return `no_safe_candidate` with blockers instead of a verified repair.

@@ -114,6 +114,18 @@ After clarifying category boundaries, tool choice for opaque checks, and evidenc
 
 Scorer revision `content-entailment-v2.1` now evaluates only cited evidence content and accepts multiple deterministic wording and evidence paths. Rescoring the saved traces requires no API calls and gives the full Terra development run `100%` cause accuracy and `100%` evidence sufficiency; category accuracy remains `91.67%` because the `eval2_d008` taxonomy disagreement is unchanged. The original result snapshots remain preserved, and v2 heldout is still unused.
 
+## Sandboxed remediation proposal
+
+The first remediation prototype handles the synthetic `eval2_d008` customer-key normalization mismatch. It opens the saved run database read-only, loads the synthetic customer reference, and tests bounded `TRIM` and `UPPER(TRIM(...))` candidates in an in-memory DuckDB sandbox.
+
+A candidate is marked verified only when it resolves all unmatched keys, preserves row and null counts, creates no empty keys, creates no source-key normalization collisions, and uses a unique reference that is already canonical under the candidate. The report includes assumptions, a changed-row preview, every verification count, and `changes_made: false`.
+
+```sh
+.venv/bin/python -m incident_pipeline.remediation eval2_d008
+```
+
+The saved proposal is `evaluation/v2/remediation/eval2_d008.json`. For the synthetic case, `UPPER(TRIM(customer_id))` changes `c-101` to `C-101`, reduces unmatched keys from one to zero, keeps three rows, and creates no collision. A human still confirms that customer IDs are semantically case-insensitive before changing the real pipeline contract.
+
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
 OpenAI evaluation is explicit and opt-in. Start with one development case because each selected case can use up to the configured API-call budget:

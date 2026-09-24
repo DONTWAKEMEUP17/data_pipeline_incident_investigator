@@ -1,0 +1,39 @@
+{
+  "approval_required": true,
+  "assumptions": [
+    "The supplied customer reference is authoritative for this run.",
+    "Customer IDs are case-insensitive and surrounding whitespace is not meaningful."
+  ],
+  "candidate_change": "Apply UPPER(TRIM(customer_id)) to the source customer_id before the reference lookup.",
+  "candidate_name": "upper_trim",
+  "change_preview": [
+    {
+      "after": "C-101",
+      "before": "c-101",
+      "order_id": "O-201"
+    }
+  ],
+  "changes_made": false,
+  "explanation": "The sandbox found 1 unmatched source key and reduced it to 0 using upper_trim, without changing row count or creating normalization collisions.",
+  "failure_mechanism": "customer_key_normalization_mismatch",
+  "proposed_human_action": "Confirm the customer-ID normalization contract with the source and reference owners. If the assumptions are correct, add the verified normalization before the lookup and re-run the full pipeline validation.",
+  "root_cause_category": "join_reference",
+  "run_id": "eval2_d008",
+  "sandbox_only": true,
+  "status": "verified_candidate",
+  "verification": {
+    "blockers": [],
+    "changed_rows": 1,
+    "checks_passed": true,
+    "empty_keys_after": 0,
+    "null_keys_after": 0,
+    "null_keys_before": 0,
+    "reference_duplicate_keys": 0,
+    "reference_noncanonical_keys": 0,
+    "row_count_after": 3,
+    "row_count_before": 3,
+    "source_normalization_collisions": 0,
+    "unmatched_keys_after": 0,
+    "unmatched_keys_before": 1
+  }
+}
