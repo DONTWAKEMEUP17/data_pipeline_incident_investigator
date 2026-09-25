@@ -9,6 +9,7 @@ learning-records/
 reference/
 airflow/runtime/
 airflow_artifacts/
+airflow_incidents/
 MISSION.md
 NOTES.md
 evaluation/artifacts/

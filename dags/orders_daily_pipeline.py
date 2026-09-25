@@ -8,6 +8,8 @@ from pathlib import Path
 import pendulum
 from airflow.sdk import dag, get_current_context, task
 
+from incident_pipeline.airflow_runtime import emit_failure_event
+
 
 ARTIFACT_ROOT_ENV = "INCIDENT_PIPELINE_AIRFLOW_ARTIFACTS_DIR"
 
@@ -26,7 +28,7 @@ def _try_number(context: dict) -> int:
     tags=["local-prototype", "synthetic"],
 )
 def orders_daily_pipeline():
-    @task(task_id="ingest", retries=0)
+    @task(task_id="ingest", retries=0, on_failure_callback=emit_failure_event)
     def ingest() -> dict[str, str]:
         from incident_pipeline.airflow_runtime import descriptor_for_context, record_task_attempt
         from incident_pipeline.pipeline import ingest_stage
@@ -48,7 +50,7 @@ def orders_daily_pipeline():
         record_task_attempt(descriptor, "ingest", _try_number(context), "success")
         return descriptor
 
-    @task(task_id="transform", retries=0)
+    @task(task_id="transform", retries=0, on_failure_callback=emit_failure_event)
     def transform(descriptor: dict[str, str]) -> dict[str, str]:
         from incident_pipeline.airflow_runtime import record_task_attempt
         from incident_pipeline.pipeline import transform_stage
@@ -66,7 +68,7 @@ def orders_daily_pipeline():
         record_task_attempt(descriptor, "transform", _try_number(context), "success")
         return descriptor
 
-    @task(task_id="validate", retries=0)
+    @task(task_id="validate", retries=0, on_failure_callback=emit_failure_event)
     def validate(descriptor: dict[str, str]) -> None:
         from incident_pipeline.airflow_runtime import record_task_attempt
         from incident_pipeline.pipeline import validate_stage
@@ -87,4 +89,3 @@ def orders_daily_pipeline():
 
 
 orders_daily_pipeline_dag = orders_daily_pipeline()
-

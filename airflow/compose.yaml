@@ -14,6 +14,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/runtime/home/airflow.db
       INCIDENT_PIPELINE_AIRFLOW_ARTIFACTS_DIR: /opt/airflow/project/airflow_artifacts
+      INCIDENT_PIPELINE_FAILURE_EVENTS_DIR: /opt/airflow/project/airflow_incidents/events
       PYTHONPATH: /opt/airflow/project
     volumes:
       - ..:/opt/airflow/project

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+compose_file="$repo_dir/airflow/compose.yaml"
+
+cd "$repo_dir"
+mkdir -p airflow/runtime airflow_artifacts airflow_incidents/events airflow_incidents/incidents airflow/results
+
+docker compose -f "$compose_file" build
+docker compose -f "$compose_file" run --rm airflow airflow db migrate
+docker compose -f "$compose_file" run --rm airflow airflow dags reserialize
+docker compose -f "$compose_file" run --rm airflow airflow dags list-import-errors -o json
+
+set +e
+docker compose -f "$compose_file" run --rm airflow \
+  airflow dags test orders_daily_pipeline 2026-09-24T02:00:00+00:00 \
+  -c '{"scenario":"schema_drift"}'
+failed_exit=$?
+set -e
+
+if [[ "$failed_exit" -eq 0 ]]; then
+  echo "Expected schema-drift DagRun to fail, but it succeeded." >&2
+  exit 1
+fi
+
+.venv/bin/python -m incident_pipeline.airflow_incidents
+.venv/bin/python -m incident_pipeline.airflow_incidents
+.venv/bin/python scripts/verify_airflow_m4b.py

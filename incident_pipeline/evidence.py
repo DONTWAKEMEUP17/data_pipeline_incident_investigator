@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable, Protocol
 
@@ -274,3 +274,64 @@ class LocalArtifactProvider:
             return RowSample(run_id, table, rows, len(raw_rows) > limit)
         finally:
             connection.close()
+
+
+class AirflowEvidenceProvider:
+    """Map one validated Airflow failure event to the existing read-only evidence tools."""
+
+    def __init__(self, event: dict[str, Any], artifacts_root: Path) -> None:
+        from .airflow_runtime import parse_failure_event
+
+        self.event = parse_failure_event(event)
+        root = Path(artifacts_root)
+        matches: list[tuple[Path, dict[str, Any]]] = []
+        for identity_path in root.glob("*/*/airflow_run.json"):
+            identity = json.loads(identity_path.read_text(encoding="utf-8"))
+            if identity.get("airflow_run_id") == self.event.airflow_run_id:
+                matches.append((identity_path.parent, identity))
+        if len(matches) != 1:
+            raise ValueError(
+                f"expected one artifact directory for Airflow run {self.event.airflow_run_id!r}; "
+                f"found {len(matches)}"
+            )
+        run_dir, identity = matches[0]
+        if identity.get("dag_id") != self.event.dag_id:
+            raise ValueError("Airflow artifact identity has a different DAG ID")
+        attempts = identity.get("task_attempts")
+        if not isinstance(attempts, list) or not any(
+            isinstance(item, dict)
+            and item.get("task_id") == self.event.task_id
+            and item.get("try_number") == self.event.try_number
+            and item.get("state") == "failed"
+            for item in attempts
+        ):
+            raise ValueError("Airflow artifact identity does not contain the failed task attempt")
+        pipeline_run_id = identity.get("pipeline_run_id")
+        if not isinstance(pipeline_run_id, str) or run_dir.name != pipeline_run_id:
+            raise ValueError("Airflow artifact identity has an invalid pipeline run ID")
+        self.pipeline_run_id = pipeline_run_id
+        self._local = LocalArtifactProvider(run_dir.parent, allowed_run_ids=(pipeline_run_id,))
+
+    def _check_run_id(self, run_id: str) -> None:
+        if run_id != self.event.airflow_run_id:
+            raise ValueError(f"unknown Airflow run ID: {run_id!r}")
+
+    def get_run_summary(self, run_id: str) -> RunSummary:
+        self._check_run_id(run_id)
+        return replace(self._local.get_run_summary(self.pipeline_run_id), run_id=run_id)
+
+    def read_stage_log(self, run_id: str, stage: str, max_lines: int = 10) -> StageLog:
+        self._check_run_id(run_id)
+        return replace(self._local.read_stage_log(self.pipeline_run_id, stage, max_lines), run_id=run_id)
+
+    def compare_schema(self, run_id: str, table: str) -> SchemaComparison:
+        self._check_run_id(run_id)
+        return replace(self._local.compare_schema(self.pipeline_run_id, table), run_id=run_id)
+
+    def profile_table(self, run_id: str, table: str) -> TableProfile:
+        self._check_run_id(run_id)
+        return replace(self._local.profile_table(self.pipeline_run_id, table), run_id=run_id)
+
+    def sample_rows(self, run_id: str, table: str, limit: int = 3) -> RowSample:
+        self._check_run_id(run_id)
+        return replace(self._local.sample_rows(self.pipeline_run_id, table, limit), run_id=run_id)
