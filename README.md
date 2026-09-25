@@ -160,6 +160,18 @@ bash scripts/airflow_m4b_smoke.sh
 
 The smoke run intentionally processes the event twice and verifies that the failed task produces one event and one report. It uses the offline deterministic adapter, makes zero model API calls, and makes no pipeline changes. Generated events and reports stay under ignored `airflow_incidents/`; the normalized verification result is checked in at `airflow/results/m4b_verification.json`.
 
+## Read-only incident view — Milestone 5A
+
+After generating at least one Airflow incident, start the local product view:
+
+```sh
+.venv/bin/python -m incident_pipeline.incident_web
+```
+
+Open `http://127.0.0.1:8765`. The landing page lists completed investigations newest first. Each detail page shows the diagnosis, proposed human action, cited evidence, Airflow task identity, and a link to the original Markdown report.
+
+The server uses only the Python standard library and reads canonical files under `airflow_incidents/incidents`. It exposes `GET` and `HEAD` routes only, escapes artifact text before rendering, rejects unsafe or oversized artifacts, and cannot change pipeline data or incident output. Feedback controls are intentionally deferred to Milestone 5B.
+
 ## Human-readable incident report
 
 `incident_pipeline.report` turns saved agent or evaluation JSON into deterministic Markdown. It validates that every cited evidence reference exists in the trace, summarizes the bounded tool results, and optionally attaches a sandbox remediation proposal. Rendering makes no model calls.
