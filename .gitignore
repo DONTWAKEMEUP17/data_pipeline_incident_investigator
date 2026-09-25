@@ -7,6 +7,8 @@ __pycache__/
 lessons/
 learning-records/
 reference/
+airflow/runtime/
+airflow_artifacts/
 MISSION.md
 NOTES.md
 evaluation/artifacts/

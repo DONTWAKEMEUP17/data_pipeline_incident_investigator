@@ -1,0 +1,22 @@
+name: incident-investigator-airflow
+
+services:
+  airflow:
+    build:
+      context: ..
+      dockerfile: airflow/Dockerfile
+      args:
+        AIRFLOW_VERSION: "3.3.2"
+    environment:
+      AIRFLOW_HOME: /opt/airflow/runtime/home
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/runtime/home/airflow.db
+      INCIDENT_PIPELINE_AIRFLOW_ARTIFACTS_DIR: /opt/airflow/project/airflow_artifacts
+      PYTHONPATH: /opt/airflow/project
+    volumes:
+      - ..:/opt/airflow/project
+      - ./runtime:/opt/airflow/runtime
+    working_dir: /opt/airflow/project
+    command: ["airflow", "version"]

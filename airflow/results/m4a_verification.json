@@ -1,0 +1,40 @@
+{
+  "agent_connected": false,
+  "airflow_version": "3.3.2",
+  "cases": {
+    "healthy": {
+      "dag_state": "success",
+      "pipeline_status": "success",
+      "stage_states": {
+        "ingest": "success",
+        "transform": "success",
+        "validate": "success"
+      },
+      "task_states": {
+        "ingest": "success",
+        "transform": "success",
+        "validate": "success"
+      },
+      "validation_status": "passed"
+    },
+    "schema_drift": {
+      "dag_state": "failed",
+      "pipeline_status": "failed",
+      "stage_states": {
+        "ingest": "success",
+        "transform": "failed",
+        "validate": "skipped"
+      },
+      "task_states": {
+        "ingest": "success",
+        "transform": "failed",
+        "validate": "upstream_failed"
+      },
+      "validation_status": "skipped"
+    }
+  },
+  "dag_id": "orders_daily_pipeline",
+  "execution_mode": "airflow dags test",
+  "milestone": "4A",
+  "model_api_calls": 0
+}

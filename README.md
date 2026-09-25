@@ -140,6 +140,16 @@ The same verifier is available to the OpenAI investigator as an opt-in typed too
 
 The report may cite a verified candidate and request human approval. The tool cannot apply the candidate, write to the saved DuckDB database, or edit the source CSV.
 
+## Local Airflow DAG — Milestone 4A
+
+The same pipeline stages now run as the Airflow 3 TaskFlow DAG `orders_daily_pipeline`. Airflow is isolated in a pinned Docker image because the project's Python 3.9 environment is older than the Python versions supported by Airflow 3.3.2.
+
+```sh
+bash scripts/airflow_m4a_smoke.sh
+```
+
+The smoke run executes one healthy scenario and one schema-drift scenario. The healthy DagRun completes `ingest → transform → validate`; the failure run records `ingest=success`, `transform=failed`, and `validate=upstream_failed`. The failed transform writes its bounded pipeline evidence before raising the task exception. No failure callback, agent, model API, or automatic report is connected yet. See `airflow/README.md` and `airflow/results/m4a_verification.json`.
+
 ## Human-readable incident report
 
 `incident_pipeline.report` turns saved agent or evaluation JSON into deterministic Markdown. It validates that every cited evidence reference exists in the trace, summarizes the bounded tool results, and optionally attaches a sandbox remediation proposal. Rendering makes no model calls.
