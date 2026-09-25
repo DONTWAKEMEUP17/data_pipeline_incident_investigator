@@ -102,8 +102,6 @@ class RunEvidenceProvider(Protocol):
 
     def sample_rows(self, run_id: str, table: str, limit: int = 3) -> RowSample: ...
 
-    def verify_customer_key_normalization(self, run_id: str) -> Any: ...
-
 
 def _bounded_text(value: Any, limit: int) -> str:
     text = str(value)

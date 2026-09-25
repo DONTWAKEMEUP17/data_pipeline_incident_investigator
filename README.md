@@ -1,6 +1,6 @@
-# Data Pipeline Incident Investigator — Milestones 0–3
+# Data Pipeline Incident Investigator — Local Prototype
 
-This is a local learning prototype. It generates synthetic CSV-to-DuckDB batch runs, offers bounded read-only evidence tools and a simple failure baseline, runs a minimal bounded investigation loop, and evaluates both systems on the same 24 fixed cases. The default decision adapter is deterministic local code used to learn the agent mechanics; an optional OpenAI adapter is available. There is no Airflow integration, report UI, or external data connection yet.
+This is a local learning prototype. It generates synthetic CSV-to-DuckDB batch runs, offers bounded read-only evidence tools and a simple failure baseline, runs a minimal bounded investigation loop, evaluates both systems on fixed cases, and renders saved results as human-readable Markdown reports. The default decision adapter is deterministic local code used to learn the agent mechanics; an optional OpenAI adapter is available. There is no Airflow integration, browser UI, or external data connection yet.
 
 ## Run locally
 
@@ -40,7 +40,7 @@ Try reading the failed run's `input.csv`, `schemas.json`, transform log, and the
 
 ## Architecture note
 
-The saved run directory is the evidence boundary. `LocalArtifactProvider` implements the typed `RunEvidenceProvider` interface using five methods: `get_run_summary`, `read_stage_log`, `compare_schema`, `profile_table`, and `sample_rows`. Keeping observations on disk makes a failure reproducible without running the pipeline again. A later Airflow adapter could implement the same interface, while the investigator stays separate. Airflow, evaluation, a real model provider, and the report UI remain outside this slice.
+The saved run directory is the evidence boundary. `LocalArtifactProvider` implements five typed evidence methods: `get_run_summary`, `read_stage_log`, `compare_schema`, `profile_table`, and `sample_rows`, plus one explicitly enabled sandbox remediation verifier. Keeping observations on disk makes a failure reproducible without running the pipeline again. A later Airflow adapter could implement the evidence interface while the investigator and report renderer stay separate.
 
 ## Read-only evidence tools and baseline
 
@@ -106,13 +106,15 @@ The saved initial result is `evaluation/results/local_initial.json`. The measure
 
 The initial Terra development run scored `87.5%` category accuracy and `75%` appropriate behavior. After adding a deterministic healthy-run guardrail and clarifying abstention in the prompt, a fresh 16-case development run scored `93.75%` on both metrics with `100%` evidence validity. One malformed tool request remains. These are development results; the held-out Terra evaluation has not been run. See `evaluation/README.md` and `evaluation/results/openai_development_after_guardrails.json` for the complete comparison.
 
-Benchmark v2 adds a separate shortcut-resistant suite rather than rewriting these v1 results. Its 18 cases use opaque validation IDs shared across different cause families, add concrete cause and evidence-sufficiency scoring, and default to the 12 development cases. The first free local development run scores the symptom baseline at `33.33%` category accuracy and `0%` cause accuracy; the deterministic agent scores `33.33%` category accuracy and `33.33%` cause accuracy. See `evaluation/v2/README.md`. V2 heldout cases have not been evaluated.
+Benchmark v2 adds a separate shortcut-resistant suite rather than rewriting these v1 results. Its 18 cases use opaque validation IDs shared across different cause families, add concrete cause and evidence-sufficiency scoring, and default to the 12 development cases. The first free local development run scores the symptom baseline at `33.33%` category accuracy and `0%` cause accuracy; the deterministic agent scores `33.33%` category accuracy and `33.33%` cause accuracy. See `evaluation/v2/README.md` for the complete chronology and frozen evaluation.
 
-An initial unchanged-prompt Terra sample over four v2 development cases scored `50%` category accuracy, `75%` cause accuracy, and `75%` evidence sufficiency. Review showed one tool-selection miss and one ambiguous category boundary despite a correct causal explanation. All four cases used the complete four-call budget. The snapshot is preserved without reruns; v2 heldout remains unused.
+An initial unchanged-prompt Terra sample over four v2 development cases scored `50%` category accuracy, `75%` cause accuracy, and `75%` evidence sufficiency. Review showed one tool-selection miss and one ambiguous category boundary despite a correct causal explanation. All four cases used the complete four-call budget. The snapshot was preserved without reruns, and heldout was still unused at that stage.
 
-After clarifying category boundaries, tool choice for opaque checks, and evidence-triggered stopping, the same four-case sample reached `100%` category accuracy and evidence sufficiency while using 14 rather than 16 API calls. The full 12-case v2 development result is `91.67%` category accuracy, `83.33%` automated cause accuracy, and `100%` evidence validity across 38 API calls. Manual review identified one category-policy disagreement and several false negatives from the keyword/tool-based scorers. Heldout remains unused while those scoring rules are reviewed.
+After clarifying category boundaries, tool choice for opaque checks, and evidence-triggered stopping, the same four-case sample reached `100%` category accuracy and evidence sufficiency while using 14 rather than 16 API calls. The full 12-case v2 development result is `91.67%` category accuracy, `83.33%` automated cause accuracy, and `100%` evidence validity across 38 API calls. Manual review identified one category-policy disagreement and several false negatives from the keyword/tool-based scorers. At that stage, heldout remained unused while those scoring rules were reviewed.
 
-Scorer revision `content-entailment-v2.1` now evaluates only cited evidence content and accepts multiple deterministic wording and evidence paths. Rescoring the saved traces requires no API calls and gives the full Terra development run `100%` cause accuracy and `100%` evidence sufficiency; category accuracy remains `91.67%` because the `eval2_d008` taxonomy disagreement is unchanged. The original result snapshots remain preserved, and v2 heldout is still unused.
+Scorer revision `content-entailment-v2.1` evaluates only cited evidence content and accepts multiple deterministic wording and evidence paths. Rescoring the saved traces requires no API calls and gives the full Terra development run `100%` cause accuracy and `100%` evidence sufficiency; category accuracy remains `91.67%` because the original `eval2_d008` taxonomy disagreement is preserved.
+
+After a final development-only taxonomy clarification, prompt fingerprint `f3673a8d69f1` and scorer `content-entailment-v2.1` were frozen. The six v2 heldout cases were then run exactly once: Terra achieved `83.33%` category accuracy, `100%` cause accuracy, `100%` evidence validity, and `100%` evidence sufficiency with 19 API calls. The single category miss is retained without post-heldout tuning. The result is `evaluation/v2/results/openai_heldout_frozen.json`.
 
 ## Sandboxed remediation proposal
 
@@ -137,6 +139,20 @@ The same verifier is available to the OpenAI investigator as an opt-in typed too
 ```
 
 The report may cite a verified candidate and request human approval. The tool cannot apply the candidate, write to the saved DuckDB database, or edit the source CSV.
+
+## Human-readable incident report
+
+`incident_pipeline.report` turns saved agent or evaluation JSON into deterministic Markdown. It validates that every cited evidence reference exists in the trace, summarizes the bounded tool results, and optionally attaches a sandbox remediation proposal. Rendering makes no model calls.
+
+```sh
+.venv/bin/python -m incident_pipeline.report \
+  evaluation/v2/results/openai_eval2_d008_after_taxonomy.json \
+  --run-id eval2_d008 \
+  --remediation-json evaluation/v2/remediation/eval2_d008.json \
+  --output reports/eval2_d008.md
+```
+
+The checked-in example is `reports/eval2_d008.md`. It presents the diagnosis, cited evidence, recommended human action, verified candidate, safety checks, assumptions, change preview, and investigation trail. Raw sampled rows are omitted from the rendered evidence detail; the grounded claim and bounded tool reference remain visible.
 
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 
