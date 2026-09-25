@@ -1,6 +1,28 @@
 # Data Pipeline Incident Investigator — Local Prototype
 
-This is a local learning prototype. It generates synthetic CSV-to-DuckDB batch runs, offers bounded read-only evidence tools and a simple failure baseline, runs a minimal bounded investigation loop, evaluates both systems on fixed cases, and renders saved results as human-readable Markdown reports. The default decision adapter is deterministic local code used to learn the agent mechanics; an optional OpenAI adapter is available. There is no Airflow integration, browser UI, or external data connection yet.
+A product-minded local prototype for investigating failed data pipelines from saved evidence. It combines a deterministic CSV-to-DuckDB pipeline, bounded agent tools, shortcut-resistant evaluation, a real local Airflow adapter, human-readable reports, and a browser-based review queue. The project uses synthetic data and defaults to an offline deterministic adapter; OpenAI evaluation is explicit and optional.
+
+## What this demonstrates
+
+- A failure callback can remain thin while a separate investigator performs bounded evidence gathering.
+- Agent reports can be validated against real tool references and abstain when evidence or budget is insufficient.
+- Schema drift and duplicate-ID failures travel through distinct Airflow stages and produce distinct diagnoses.
+- Human feedback can be collected separately without rewriting incident evidence or implying that a pipeline was repaired.
+- A fixed heldout benchmark can expose category-policy errors while preserving strong cause and evidence scores.
+
+See [the architecture and acceptance criteria](docs/architecture.md) for trust boundaries, the two execution paths, verified results, and current limits.
+
+## Quick product demo
+
+After creating the virtual environment and installing `requirements.txt`, run:
+
+```sh
+.venv/bin/python -m incident_pipeline.demo
+```
+
+Open `http://127.0.0.1:8765`. The command builds an isolated `demo_workspace/` with one healthy run and two failed runs, creates grounded Schema drift and Data quality reports, and starts the local review UI. Press `Ctrl+C` to stop. Re-running rebuilds the same fixed runs without accumulating incidents; feedback remains in the separate demo SQLite database.
+
+This fast path does not launch Airflow. It reuses the same pipeline stages, failure-event contract, evidence provider, investigator, report renderer, and web app. Run `bash scripts/airflow_m4b_smoke.sh` for the real Docker Airflow integration proof.
 
 ## Run locally
 
@@ -19,6 +41,14 @@ python3 -m venv .venv
 ```
 
 The generator accepts a different output directory via `--output-dir`. It regenerates the four known runs and overwrites only their known generated files. It needs no API key. The CSV fixtures are made-up orders, not personal data.
+
+Run the same offline acceptance path used by CI with:
+
+```sh
+bash scripts/verify_local.sh
+```
+
+This runs the full unit suite, compiles the Python modules, builds the isolated product demo, and checks the Git diff for whitespace errors. Docker Airflow smoke tests remain separate manual integration checks.
 
 ## Inspect the runs
 
@@ -40,7 +70,7 @@ Try reading the failed run's `input.csv`, `schemas.json`, transform log, and the
 
 ## Architecture note
 
-The saved run directory is the evidence boundary. `LocalArtifactProvider` implements five typed evidence methods: `get_run_summary`, `read_stage_log`, `compare_schema`, `profile_table`, and `sample_rows`, plus one explicitly enabled sandbox remediation verifier. Keeping observations on disk makes a failure reproducible without running the pipeline again. A later Airflow adapter could implement the evidence interface while the investigator and report renderer stay separate.
+The saved run directory is the evidence boundary. `LocalArtifactProvider` implements five typed evidence methods: `get_run_summary`, `read_stage_log`, `compare_schema`, `profile_table`, and `sample_rows`, plus one explicitly enabled sandbox remediation verifier. Keeping observations on disk makes a failure reproducible without running the pipeline again. `AirflowEvidenceProvider` implements the same evidence interface, so the investigator and report renderer remain independent of orchestration.
 
 ## Read-only evidence tools and baseline
 
@@ -216,13 +246,3 @@ Do not tune from held-out errors. After reviewing two failed **development** cas
   --split heldout \
   --output evaluation/results/local_heldout_after_change.json
 ```
-
-## Learning materials / 学习材料
-
-- `lessons/0001-how-agent-py-works.html` is a short bilingual interactive lesson tied to this code.
-- `reference/agent-loop-cheat-sheet.html` is a printable agent-loop reference.
-- `MISSION.md` records the learning goal, and `learning-records/` records demonstrated understanding.
-
-### Hands-on checkpoint
-
-The Milestone 2 deterministic teaching adapter demonstrates **continue within budget**: after finding the primary blocker, it spends a bounded call to look for an additional anomaly. The v2 Terra policy now uses **evidence-triggered stopping**: it investigates an additional issue only when an observation specifically suggests one. Run `.venv/bin/python -m incident_pipeline.agent failed_001` to study the earlier policy, then compare it with the saved v2 Terra traces.

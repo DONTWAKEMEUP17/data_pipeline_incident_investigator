@@ -10,6 +10,7 @@ reference/
 airflow/runtime/
 airflow_artifacts/
 airflow_incidents/
+demo_workspace/
 MISSION.md
 NOTES.md
 evaluation/artifacts/
