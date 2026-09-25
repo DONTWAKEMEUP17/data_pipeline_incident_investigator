@@ -10,9 +10,6 @@
 | Root-cause category | Join / reference |
 | Uncertainty | Low |
 | Changes made | No |
-| Evidence tool calls | 3 |
-| Model steps | 4 |
-| Model API calls | 4 |
 
 ## What happened
 
@@ -73,14 +70,6 @@ The sandbox found 1 unmatched source key and reduced it to 0 using upper_trim, w
 - Customer IDs are case-insensitive and surrounding whitespace is not meaningful.
 
 **Remediation handoff:** Confirm the customer-ID normalization contract with the source and reference owners. If the assumptions are correct, add the verified normalization before the lookup and re-run the full pipeline validation.
-
-## Investigation trail
-
-| Step | Tool | Result |
-| ---: | --- | --- |
-| 1 | `get_run_summary` | ok |
-| 2 | `read_stage_log` | ok |
-| 3 | `sample_rows` | ok |
 
 ---
 

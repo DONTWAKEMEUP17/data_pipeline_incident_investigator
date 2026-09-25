@@ -110,6 +110,17 @@ class ReportTest(unittest.TestCase):
         self.assertIn("| Unmatched customer keys | 1 | 0 |", first)
         self.assertIn("| `O-201` | `c-101` | `C-101` |", first)
         self.assertIn("Rendering made no model calls and changed no pipeline data", first)
+        self.assertNotIn("Model API calls", first)
+        self.assertNotIn("Tool execution trail", first)
+
+    def test_debug_appendix_is_opt_in(self):
+        rendered = render_markdown(_investigation(), include_debug=True)
+
+        self.assertIn("## Technical appendix", rendered)
+        self.assertIn("| Evidence tool calls | 2 |", rendered)
+        self.assertIn("| Model steps | 3 |", rendered)
+        self.assertIn("| Model API calls | 3 |", rendered)
+        self.assertIn("### Tool execution trail", rendered)
 
     def test_unknown_evidence_reference_is_rejected(self):
         investigation = _investigation()

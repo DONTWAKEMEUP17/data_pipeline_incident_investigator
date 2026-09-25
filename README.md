@@ -152,7 +152,9 @@ The report may cite a verified candidate and request human approval. The tool ca
   --output reports/eval2_d008.md
 ```
 
-The checked-in example is `reports/eval2_d008.md`. It presents the diagnosis, cited evidence, recommended human action, verified candidate, safety checks, assumptions, change preview, and investigation trail. Raw sampled rows are omitted from the rendered evidence detail; the grounded claim and bounded tool reference remain visible.
+The checked-in example is `reports/eval2_d008.md`. It is intended for the data engineer or analyst handling the incident and presents the diagnosis, cited evidence, recommended human action, verified candidate, safety checks, assumptions, and change preview. Raw sampled rows are omitted from the rendered evidence detail; the grounded claim and bounded tool reference remain visible.
+
+Agent-development metadata stays in the original JSON trace. Pass `--include-debug` only when a developer needs model-step counters and the complete tool execution trail in a technical appendix.
 
 Latency is measured with `perf_counter` and varies by machine. The deterministic adapter has zero API calls and zero token cost. These numbers measure this synthetic benchmark only; they do not establish production accuracy or an LLM improvement. See `evaluation/README.md` for metric definitions, family slices, limitations, and the human review checkpoint.
 

@@ -157,6 +157,8 @@ def _yes_no(value: Any) -> str:
 def render_markdown(
     investigation: dict[str, Any],
     remediation: dict[str, Any] | None = None,
+    *,
+    include_debug: bool = False,
 ) -> str:
     """Validate references and render a deterministic report without model calls."""
     report = _object(investigation.get("report"), "report")
@@ -217,9 +219,6 @@ def render_markdown(
         f"| Root-cause category | {ROOT_CAUSE_LABELS[category]} |",
         f"| Uncertainty | {UNCERTAINTY_LABELS[uncertainty]} |",
         f"| Changes made | {_yes_no(report.get('changes_made'))} |",
-        f"| Evidence tool calls | {_markdown(tool_calls)} |",
-        f"| Model steps | {_markdown(model_steps)} |",
-        f"| Model API calls | {_markdown(model_calls)} |",
         "",
         "## What happened",
         "",
@@ -308,15 +307,26 @@ def render_markdown(
             + _markdown(_text(remediation.get("proposed_human_action"), "remediation.proposed_human_action")),
         ])
 
-    lines.extend([
-        "",
-        "## Investigation trail",
-        "",
-        "| Step | Tool | Result |",
-        "| ---: | --- | --- |",
-    ])
-    for step, tool, result_status in trail:
-        lines.append(f"| {step} | `{_markdown(tool)}` | {result_status} |")
+    if include_debug:
+        lines.extend([
+            "",
+            "## Technical appendix",
+            "",
+            "This section is for agent development and evaluation.",
+            "",
+            "| Metric | Value |",
+            "| --- | ---: |",
+            f"| Evidence tool calls | {_markdown(tool_calls)} |",
+            f"| Model steps | {_markdown(model_steps)} |",
+            f"| Model API calls | {_markdown(model_calls)} |",
+            "",
+            "### Tool execution trail",
+            "",
+            "| Step | Tool | Result |",
+            "| ---: | --- | --- |",
+        ])
+        for step, tool, result_status in trail:
+            lines.append(f"| {step} | `{_markdown(tool)}` | {result_status} |")
     lines.extend([
         "",
         "---",
@@ -332,13 +342,18 @@ def main() -> None:
     parser.add_argument("investigation_json", type=Path)
     parser.add_argument("--run-id", help="Required when investigation_json is an evaluation result")
     parser.add_argument("--remediation-json", type=Path)
+    parser.add_argument(
+        "--include-debug",
+        action="store_true",
+        help="Append model counters and the tool execution trail for agent development",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     investigation = load_investigation(args.investigation_json, args.run_id)
     run_id = investigation["report"]["run_id"]
     remediation = load_remediation(args.remediation_json, run_id) if args.remediation_json else None
-    rendered = render_markdown(investigation, remediation)
+    rendered = render_markdown(investigation, remediation, include_debug=args.include_debug)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(rendered, encoding="utf-8")
     print(json.dumps({
@@ -346,6 +361,7 @@ def main() -> None:
         "run_id": run_id,
         "evidence_count": len(investigation["report"]["evidence_references"]),
         "remediation_included": remediation is not None,
+        "debug_included": args.include_debug,
         "model_api_calls": 0,
     }, indent=2))
 
