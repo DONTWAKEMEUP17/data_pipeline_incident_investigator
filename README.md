@@ -170,7 +170,15 @@ After generating at least one Airflow incident, start the local product view:
 
 Open `http://127.0.0.1:8765`. The landing page lists completed investigations newest first. Each detail page shows the diagnosis, proposed human action, cited evidence, Airflow task identity, and a link to the original Markdown report.
 
-The server uses only the Python standard library and reads canonical files under `airflow_incidents/incidents`. It exposes `GET` and `HEAD` routes only, escapes artifact text before rendering, rejects unsafe or oversized artifacts, and cannot change pipeline data or incident output. Feedback controls are intentionally deferred to Milestone 5B.
+The server uses only the Python standard library and reads canonical files under `airflow_incidents/incidents`. It escapes artifact text before rendering, rejects unsafe or oversized artifacts, and cannot change pipeline data or incident output.
+
+## Local human feedback — Milestone 5B
+
+Each incident page includes three review signals: `useful`, `incorrect`, and `uncertain`. Selecting one writes a single current value for that event to `airflow_incidents/feedback.sqlite3`; selecting again updates the same row. The incident list shows the current signal and aggregate counts.
+
+The root-cause label is descriptive metadata, while the colored human-review state answers whether the report helped: green means useful, red means incorrect, yellow means uncertain, and gray means not reviewed. A useful review does not imply that the underlying pipeline has been repaired. The list can be filtered by all review states; `Needs review` includes awaiting, incorrect, and uncertain reports, while useful reports are treated as review-complete.
+
+Feedback is kept in a dedicated local SQLite database and contains only the event ID, selected value, and update timestamp. It does not alter the incident report, pipeline artifacts, Airflow metadata, or source data. The feedback form is size-bounded, uses a per-process CSRF token, accepts only the three allowlisted values, and is the only write route exposed by the local server.
 
 ## Human-readable incident report
 

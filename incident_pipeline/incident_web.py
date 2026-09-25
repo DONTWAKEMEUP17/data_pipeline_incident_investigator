@@ -1,4 +1,4 @@
-"""Small read-only local web view for generated Airflow incident artifacts."""
+"""Local incident review UI with read-only artifacts and separate feedback storage."""
 
 from __future__ import annotations
 
@@ -6,12 +6,15 @@ import argparse
 import html
 import json
 import re
+import secrets
 from dataclasses import dataclass
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
+
+from .feedback import FEEDBACK_RATINGS, FeedbackRecord, FeedbackStore
 
 
 EVENT_ID_PATTERN = re.compile(r"^[a-f0-9]{24}$")
@@ -25,6 +28,22 @@ CATEGORY_LABELS = {
     "unknown": "Unknown / abstained",
 }
 UNCERTAINTY_LABELS = {"low": "Low", "medium": "Medium", "high": "High"}
+FEEDBACK_LABELS = {"useful": "Useful", "incorrect": "Incorrect", "uncertain": "Uncertain"}
+FEEDBACK_LIST_LABELS = {
+    "useful": "Report useful",
+    "incorrect": "Diagnosis incorrect",
+    "uncertain": "Uncertain",
+}
+FEEDBACK_SYMBOLS = {"useful": "✓", "incorrect": "×", "uncertain": "?"}
+REVIEW_FILTER_LABELS = {
+    "all": "All",
+    "needs_review": "Needs review",
+    "awaiting": "Awaiting",
+    "incorrect": "Incorrect",
+    "uncertain": "Uncertain",
+    "useful": "Useful",
+}
+MAX_FORM_BYTES = 4_096
 
 
 @dataclass(frozen=True)
@@ -50,6 +69,7 @@ class WebResponse:
     status: int
     content_type: str
     body: bytes
+    headers: tuple[tuple[str, str], ...] = ()
 
 
 class IncidentRepository:
@@ -146,7 +166,8 @@ def _styles() -> str:
     return """
     :root { color-scheme: light; --ink:#15232d; --muted:#61717d; --line:#dce4e7;
       --paper:#fbfcfa; --panel:#ffffff; --accent:#0c7067; --accent-soft:#e3f2ef;
-      --danger:#a13f2d; --danger-soft:#f8e9e4; --shadow:0 18px 50px rgba(20,42,52,.08); }
+      --danger:#a13f2d; --danger-soft:#f8e9e4; --warning:#8a6515; --warning-soft:#fff3cf;
+      --neutral:#455d6a; --neutral-soft:#edf2f4; --shadow:0 18px 50px rgba(20,42,52,.08); }
     * { box-sizing:border-box; }
     body { margin:0; background:linear-gradient(140deg,#eef5f1 0,#f7f4ed 48%,#edf2f4 100%);
       color:var(--ink); font:15px/1.55 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
@@ -169,16 +190,23 @@ def _styles() -> str:
     .section-head { display:flex; justify-content:space-between; align-items:end; gap:16px; margin:34px 2px 14px; }
     .section-head p { margin:0; color:var(--muted); }
     .incident-list { display:grid; gap:12px; }
-    .incident-row { display:grid; grid-template-columns:minmax(240px,1.4fr) minmax(150px,.7fr) 120px 28px;
+    .incident-row { display:grid; grid-template-columns:minmax(220px,1.25fr) minmax(145px,.65fr) minmax(160px,.72fr) 100px 24px;
       align-items:center; gap:20px; padding:19px 22px; color:inherit; text-decoration:none;
       border:1px solid var(--line); border-radius:16px; background:var(--panel); box-shadow:0 6px 20px rgba(20,42,52,.04); }
     .incident-row:hover { transform:translateY(-1px); border-color:#a9cbc5; box-shadow:0 12px 30px rgba(20,42,52,.08); }
     .eyebrow { color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; }
     .run-id { margin-top:3px; font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; }
     .meta { color:var(--muted); font-size:13px; }
-    .badge { display:inline-flex; width:max-content; align-items:center; gap:7px; padding:6px 10px;
-      border-radius:999px; background:var(--danger-soft); color:var(--danger); font-size:12px; font-weight:800; }
-    .badge::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .cause-tag { display:inline-flex; width:max-content; margin-top:6px; padding:6px 10px; border-radius:9px;
+      background:var(--neutral-soft); color:var(--neutral); font-size:12px; font-weight:800; }
+    .review-pill { display:inline-flex; width:max-content; align-items:center; gap:7px; margin-top:6px; padding:6px 10px;
+      border:1px solid transparent; border-radius:999px; font-size:12px; font-weight:800; }
+    .review-pill.awaiting { border-color:#cbd5da; background:#f7f9fa; color:var(--muted); }
+    .review-pill.useful { border-color:#abd7c0; background:#e5f5ec; color:#176343; }
+    .review-pill.incorrect { border-color:#ecc0b7; background:var(--danger-soft); color:var(--danger); }
+    .review-pill.uncertain { border-color:#ead38c; background:var(--warning-soft); color:var(--warning); }
+    .review-symbol { display:grid; width:17px; height:17px; place-items:center; border-radius:50%;
+      background:currentColor; color:white; font-size:11px; line-height:1; }
     .arrow { font-size:22px; color:var(--accent); }
     .empty { padding:48px; text-align:center; border:1px dashed #b9c6ca; border-radius:18px;
       background:rgba(255,255,255,.55); color:var(--muted); }
@@ -204,10 +232,37 @@ def _styles() -> str:
     dt { color:var(--muted); }
     dd { margin:0; overflow-wrap:anywhere; }
     .report-link { display:inline-flex; margin-top:18px; font-weight:750; }
+    .feedback-card { border-top:5px solid var(--ink); }
+    .feedback-card p { color:var(--muted); }
+    .feedback-options { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
+    .feedback-button { appearance:none; padding:11px 8px; border:1px solid var(--line); border-radius:11px;
+      background:var(--paper); color:var(--ink); cursor:pointer; font:inherit; font-size:13px; font-weight:750; }
+    .feedback-button:hover { border-color:var(--accent); color:var(--accent); }
+    .feedback-button.useful.selected { border-color:#82c7a3; background:#e5f5ec; color:#176343; }
+    .feedback-button.incorrect.selected { border-color:#df9c8e; background:var(--danger-soft); color:var(--danger); }
+    .feedback-button.uncertain.selected { border-color:#d8bb5c; background:var(--warning-soft); color:var(--warning); }
+    .feedback-saved { margin-top:14px; }
+    .feedback-note { margin-top:9px !important; font-size:12px; }
+    .review-summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:22px; }
+    .review-summary-label { margin-right:3px; color:var(--muted); font-size:12px; font-weight:800;
+      letter-spacing:.06em; text-transform:uppercase; }
+    .review-summary .review-pill { margin-top:0; }
+    .review-filters { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+    .filter-link { display:inline-flex; align-items:center; gap:7px; padding:8px 12px; border:1px solid var(--line);
+      border-radius:999px; background:rgba(255,255,255,.72); color:var(--muted); text-decoration:none;
+      font-size:13px; font-weight:750; }
+    .filter-link:hover { border-color:#a9cbc5; color:var(--accent); }
+    .filter-link.active { border-color:var(--ink); background:var(--ink); color:white; }
+    .filter-count { display:grid; min-width:20px; height:20px; padding:0 5px; place-items:center; border-radius:999px;
+      background:rgba(97,113,125,.12); font-size:11px; }
+    .filter-link.active .filter-count { background:rgba(255,255,255,.18); }
     footer { margin-top:30px; color:var(--muted); font-size:12px; text-align:center; }
-    @media (max-width:760px) { .incident-row { grid-template-columns:1fr auto; }
-      .incident-row .meta:nth-of-type(2) { display:none; } .detail-grid { grid-template-columns:1fr; }
-      .hero,.detail-head { padding:24px; } .shell { width:min(100% - 22px,1120px); } }
+    @media (max-width:760px) { .incident-row { grid-template-columns:1fr auto; align-items:start; }
+      .run-cell { grid-column:1 / -1; } .cause-cell { grid-column:1; grid-row:2; }
+      .review-cell { grid-column:1; grid-row:3; } .airflow-cell { display:none; }
+      .arrow { grid-column:2; grid-row:2 / 4; align-self:center; } .detail-grid { grid-template-columns:1fr; }
+      .hero,.detail-head { padding:24px; } .shell { width:min(100% - 22px,1120px); }
+      .feedback-options { grid-template-columns:1fr; } }
     """
 
 
@@ -217,8 +272,8 @@ def _page(title: str, content: str) -> str:
 <title>{_escape(title)}</title><style>{_styles()}</style></head>
 <body><main class="shell"><header class="masthead"><a class="brand" href="/"><span class="mark">PI</span>
 <span><strong>Pipeline Incident Investigator</strong><span>Local Airflow prototype</span></span></a>
-<span class="readonly">Read-only view</span></header>{content}
-<footer>Synthetic local incidents · Recommendations require human review · No pipeline changes from this view</footer>
+<span class="readonly">Pipeline data read-only</span></header>{content}
+<footer>Synthetic local incidents · Feedback stays local · No pipeline changes from this view</footer>
 </main></body></html>"""
 
 
@@ -263,34 +318,98 @@ def _evidence_observation(tool: Any, output: Any, error: Any) -> str:
     return "A bounded structured result was returned."
 
 
-def render_list(scan: IncidentScan) -> str:
+def render_list(
+    scan: IncidentScan,
+    feedback: dict[str, FeedbackRecord],
+    review_filter: str = "all",
+) -> str:
+    if review_filter not in REVIEW_FILTER_LABELS:
+        raise ValueError("unknown review filter")
+    current_ids = {incident.event_id for incident in scan.incidents}
+    relevant_feedback = {event_id: record for event_id, record in feedback.items() if event_id in current_ids}
+    filter_counts = {
+        "all": len(scan.incidents),
+        "awaiting": len(scan.incidents) - len(relevant_feedback),
+        "incorrect": sum(record.rating == "incorrect" for record in relevant_feedback.values()),
+        "uncertain": sum(record.rating == "uncertain" for record in relevant_feedback.values()),
+        "useful": sum(record.rating == "useful" for record in relevant_feedback.values()),
+    }
+    filter_counts["needs_review"] = (
+        filter_counts["awaiting"] + filter_counts["incorrect"] + filter_counts["uncertain"]
+    )
+
+    def included(incident: IncidentArtifact) -> bool:
+        record = relevant_feedback.get(incident.event_id)
+        if review_filter == "all":
+            return True
+        if review_filter == "needs_review":
+            return record is None or record.rating in {"incorrect", "uncertain"}
+        if review_filter == "awaiting":
+            return record is None
+        return record is not None and record.rating == review_filter
+
+    visible_incidents = tuple(incident for incident in scan.incidents if included(incident))
     rows = []
-    for incident in scan.incidents:
+    for incident in visible_incidents:
         manifest = incident.manifest
         report = incident.report
         category = CATEGORY_LABELS[report["root_cause_category"]]
+        record = feedback.get(incident.event_id)
+        review_class = record.rating if record else "awaiting"
+        review_label = FEEDBACK_LIST_LABELS[record.rating] if record else "Awaiting review"
+        review_symbol = FEEDBACK_SYMBOLS[record.rating] if record else "·"
         rows.append(f"""<a class="incident-row" href="/incidents/{incident.event_id}">
-<div><div class="eyebrow">{_escape(_display_time(manifest.get('airflow_run_id')))}</div>
+<div class="run-cell"><div class="eyebrow">{_escape(_display_time(manifest.get('airflow_run_id')))}</div>
 <div class="run-id">{_escape(manifest.get('airflow_run_id'))}</div></div>
-<div><span class="badge">{_escape(category)}</span><div class="meta">Uncertainty: {_escape(UNCERTAINTY_LABELS[report['uncertainty']])}</div></div>
-<div class="meta">{_escape(manifest.get('task_id'))}<br>Attempt {_escape(manifest.get('try_number'))}</div>
+<div class="cause-cell"><div class="eyebrow">Root cause</div><span class="cause-tag">{_escape(category)}</span>
+<div class="meta">{_escape(UNCERTAINTY_LABELS[report['uncertainty']])} uncertainty</div></div>
+<div class="review-cell"><div class="eyebrow">Human review</div><span class="review-pill {review_class}">
+<span class="review-symbol" aria-hidden="true">{review_symbol}</span>{_escape(review_label)}</span></div>
+<div class="meta airflow-cell">{_escape(manifest.get('task_id'))}<br>Attempt {_escape(manifest.get('try_number'))}</div>
 <div class="arrow">›</div></a>""")
     if rows:
         listing = f'<div class="incident-list">{"".join(rows)}</div>'
     else:
-        listing = '<div class="empty"><h3>No completed incidents yet</h3><p>Run the Milestone 4B smoke command, then refresh this page.</p></div>'
+        listing = (
+            '<div class="empty"><h3>No incidents match this review filter</h3>'
+            '<p><a href="/">Show all incidents</a></p></div>'
+            if scan.incidents else
+            '<div class="empty"><h3>No completed incidents yet</h3>'
+            '<p>Run the Milestone 4B smoke command, then refresh this page.</p></div>'
+        )
     warning = (
         f'<div class="notice">{scan.unreadable_count} incident artifact(s) could not be read and were omitted.</div>'
         if scan.unreadable_count else ""
     )
+    filter_link_parts = []
+    for name, label in REVIEW_FILTER_LABELS.items():
+        active_class = " active" if name == review_filter else ""
+        href = "/" if name == "all" else f"/?review={name}"
+        current = ' aria-current="page"' if name == review_filter else ""
+        filter_link_parts.append(
+            f'<a class="filter-link{active_class}" href="{href}"{current}>'
+            f'{label}<span class="filter-count">{filter_counts[name]}</span></a>'
+        )
+    filter_links = "".join(filter_link_parts)
+    cause_count = len({incident.report["root_cause_category"] for incident in visible_incidents})
     return _page("Incidents", f"""<section class="hero"><div class="eyebrow">Incident workspace</div>
 <h1>Start with the evidence that changes the next action.</h1>
-<p>Failed Airflow tasks appear here after the separate investigator finishes. Open a report to review the diagnosis, cited evidence, and proposed human action.</p></section>
-<div class="section-head"><div><div class="eyebrow">Completed investigations</div><h2>{len(scan.incidents)} incidents</h2></div>
-<p>Newest Airflow run first</p></div>{warning}{listing}""")
+<p>Failed Airflow tasks appear here after the separate investigator finishes. Open a report to review the diagnosis, cited evidence, and proposed human action.</p>
+<div class="review-summary"><span class="review-summary-label">Human review</span>
+<span class="review-pill useful">✓ {filter_counts['useful']} useful</span>
+<span class="review-pill incorrect">× {filter_counts['incorrect']} incorrect</span>
+<span class="review-pill uncertain">? {filter_counts['uncertain']} uncertain</span>
+<span class="review-pill awaiting">· {filter_counts['awaiting']} awaiting review</span></div></section>
+<div class="section-head"><div><div class="eyebrow">Review queue</div><h2>{len(visible_incidents)} shown</h2></div>
+<p>{cause_count} cause {'category' if cause_count == 1 else 'categories'} · Newest run first</p></div>
+<nav class="review-filters" aria-label="Filter incidents by review status">{filter_links}</nav>{warning}{listing}""")
 
 
-def render_detail(incident: IncidentArtifact) -> str:
+def render_detail(
+    incident: IncidentArtifact,
+    feedback: FeedbackRecord | None,
+    csrf_token: str,
+) -> str:
     manifest = incident.manifest
     report = incident.report
     results = _tool_results(incident.investigation)
@@ -308,6 +427,18 @@ def render_detail(incident: IncidentArtifact) -> str:
     evidence = "".join(evidence_html) or '<p class="meta">No cited evidence was available.</p>'
     category = CATEGORY_LABELS[report["root_cause_category"]]
     uncertainty = UNCERTAINTY_LABELS[report["uncertainty"]]
+    feedback_buttons = "".join(
+        f'<button class="feedback-button {rating}{" selected" if feedback and feedback.rating == rating else ""}" '
+        f'type="submit" name="rating" value="{rating}">{label}</button>'
+        for rating, label in FEEDBACK_LABELS.items()
+    )
+    saved = (
+        f'<div class="feedback-saved"><span class="review-pill {feedback.rating}">'
+        f'<span class="review-symbol" aria-hidden="true">{FEEDBACK_SYMBOLS[feedback.rating]}</span>'
+        f'Your review: {_escape(FEEDBACK_LABELS[feedback.rating])}</span></div>'
+        if feedback else '<div class="feedback-saved"><span class="review-pill awaiting">'
+        '<span class="review-symbol" aria-hidden="true">·</span>Awaiting review</span></div>'
+    )
     content = f"""<a class="back" href="/">← All incidents</a>
 <section class="detail-head"><div class="eyebrow">{_escape(_display_time(manifest.get('airflow_run_id')))}</div>
 <h1>{_escape(category)}</h1><p>{_escape(manifest.get('airflow_run_id'))}</p>
@@ -323,52 +454,134 @@ def render_detail(incident: IncidentArtifact) -> str:
 <dt>Attempt</dt><dd>{_escape(manifest.get('try_number'))}</dd><dt>Event</dt><dd>{_escape(incident.event_id)}</dd></dl></section>
 <section class="card"><div class="eyebrow">Investigator</div><h2>Run details</h2><dl>
 <dt>Adapter</dt><dd>{_escape(manifest.get('adapter'))}</dd><dt>API calls</dt><dd>{_escape(manifest.get('model_api_calls'))}</dd>
-<dt>Data changed</dt><dd>No</dd></dl><a class="report-link" href="/incidents/{incident.event_id}/report.md">Open Markdown report →</a></section></aside></div>"""
+<dt>Data changed</dt><dd>No</dd></dl><a class="report-link" href="/incidents/{incident.event_id}/report.md">Open Markdown report →</a></section>
+<section class="card feedback-card"><div class="eyebrow">Human review</div><h2>Was this diagnosis useful?</h2>
+<p>Choose the signal that best reflects whether this report helped you decide the next action.</p>
+<form method="post" action="/incidents/{incident.event_id}/feedback">
+<input type="hidden" name="csrf_token" value="{_escape(csrf_token)}"><div class="feedback-options">{feedback_buttons}</div></form>
+{saved}<p class="feedback-note">This rates the report. It does not mean the pipeline has been fixed.</p></section></aside></div>"""
     return _page(f"Incident {incident.event_id}", content)
 
 
 class IncidentWebApp:
-    def __init__(self, repository: IncidentRepository) -> None:
+    def __init__(
+        self,
+        repository: IncidentRepository,
+        feedback_store: FeedbackStore,
+        csrf_token: str,
+    ) -> None:
         self.repository = repository
+        self.feedback_store = feedback_store
+        self.csrf_token = csrf_token
 
-    def respond(self, method: str, raw_path: str) -> WebResponse:
+    def respond(
+        self,
+        method: str,
+        raw_path: str,
+        *,
+        body: bytes = b"",
+        headers: dict[str, str] | None = None,
+    ) -> WebResponse:
+        parsed_path = urlsplit(raw_path)
+        path = unquote(parsed_path.path)
+        feedback_match = re.fullmatch(r"/incidents/([a-f0-9]{24})/feedback", path)
+        if method == "POST" and feedback_match:
+            if len(body) > MAX_FORM_BYTES:
+                return WebResponse(413, "text/plain; charset=utf-8", b"Feedback form is too large\n")
+            content_type = (headers or {}).get("content-type", "")
+            if not content_type.startswith("application/x-www-form-urlencoded"):
+                return WebResponse(415, "text/plain; charset=utf-8", b"Unsupported content type\n")
+            event_id = feedback_match.group(1)
+            if self.repository.get(event_id) is None:
+                return WebResponse(404, "text/plain; charset=utf-8", b"Incident not found\n")
+            try:
+                form = parse_qs(body.decode("utf-8"), keep_blank_values=True, strict_parsing=True)
+            except (UnicodeDecodeError, ValueError):
+                return WebResponse(400, "text/plain; charset=utf-8", b"Invalid feedback form\n")
+            tokens = form.get("csrf_token", [])
+            ratings = form.get("rating", [])
+            if len(tokens) != 1 or not secrets.compare_digest(tokens[0], self.csrf_token):
+                return WebResponse(403, "text/plain; charset=utf-8", b"Invalid feedback token\n")
+            if len(ratings) != 1 or ratings[0] not in FEEDBACK_RATINGS:
+                return WebResponse(400, "text/plain; charset=utf-8", b"Invalid feedback value\n")
+            self.feedback_store.save(event_id, ratings[0])
+            return WebResponse(
+                303,
+                "text/plain; charset=utf-8",
+                b"Feedback saved\n",
+                (("Location", f"/incidents/{event_id}"),),
+            )
         if method not in {"GET", "HEAD"}:
             return WebResponse(405, "text/plain; charset=utf-8", b"Method not allowed\n")
-        path = unquote(urlsplit(raw_path).path)
         if path == "/healthz":
             scan = self.repository.scan()
             body = json.dumps({
                 "status": "ok",
-                "read_only": True,
+                "pipeline_data_read_only": True,
+                "feedback_writable": True,
                 "incident_count": len(scan.incidents),
                 "unreadable_count": scan.unreadable_count,
+                "feedback_count": len(self.feedback_store.all()),
             }, sort_keys=True).encode("utf-8") + b"\n"
             return WebResponse(200, "application/json; charset=utf-8", body)
         if path == "/":
-            return WebResponse(200, "text/html; charset=utf-8", render_list(self.repository.scan()).encode("utf-8"))
+            values = parse_qs(parsed_path.query).get("review", ["all"])
+            if len(values) != 1 or values[0] not in REVIEW_FILTER_LABELS:
+                return WebResponse(400, "text/plain; charset=utf-8", b"Invalid review filter\n")
+            return WebResponse(
+                200,
+                "text/html; charset=utf-8",
+                render_list(self.repository.scan(), self.feedback_store.all(), values[0]).encode("utf-8"),
+            )
         match = re.fullmatch(r"/incidents/([a-f0-9]{24})(/report\.md)?", path)
         if match:
             incident = self.repository.get(match.group(1))
             if incident is not None:
                 if match.group(2):
                     return WebResponse(200, "text/markdown; charset=utf-8", incident.report_markdown.encode("utf-8"))
-                return WebResponse(200, "text/html; charset=utf-8", render_detail(incident).encode("utf-8"))
+                return WebResponse(
+                    200,
+                    "text/html; charset=utf-8",
+                    render_detail(incident, self.feedback_store.get(incident.event_id), self.csrf_token).encode("utf-8"),
+                )
         return WebResponse(404, "text/plain; charset=utf-8", b"Incident not found\n")
 
 
-def create_server(host: str, port: int, incidents_dir: Path) -> ThreadingHTTPServer:
-    app = IncidentWebApp(IncidentRepository(incidents_dir))
+def create_server(host: str, port: int, incidents_dir: Path, feedback_db: Path) -> ThreadingHTTPServer:
+    app = IncidentWebApp(IncidentRepository(incidents_dir), FeedbackStore(feedback_db), secrets.token_urlsafe(32))
 
     class Handler(BaseHTTPRequestHandler):
         def _serve(self) -> None:
-            response = app.respond(self.command, self.path)
+            if self.command == "POST":
+                try:
+                    content_length = int(self.headers.get("Content-Length", "0"))
+                except ValueError:
+                    content_length = -1
+                if content_length < 0 or content_length > MAX_FORM_BYTES:
+                    response = WebResponse(413, "text/plain; charset=utf-8", b"Feedback form is too large\n")
+                else:
+                    request_body = self.rfile.read(content_length)
+                    request_headers = {name.lower(): value for name, value in self.headers.items()}
+                    response = app.respond(
+                        self.command,
+                        self.path,
+                        body=request_body,
+                        headers=request_headers,
+                    )
+            else:
+                response = app.respond(self.command, self.path)
             body = b"" if self.command == "HEAD" else response.body
             self.send_response(response.status)
             self.send_header("Content-Type", response.content_type)
-            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Length", str(len(response.body)))
             self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'")
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'",
+            )
             self.send_header("X-Content-Type-Options", "nosniff")
+            for name, value in response.headers:
+                self.send_header(name, value)
             self.end_headers()
             if body:
                 self.wfile.write(body)
@@ -387,13 +600,14 @@ def create_server(host: str, port: int, incidents_dir: Path) -> ThreadingHTTPSer
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Serve the read-only local incident list and report pages")
+    parser = argparse.ArgumentParser(description="Serve local incident review pages and feedback controls")
     parser.add_argument("--incidents-dir", type=Path, default=Path("airflow_incidents/incidents"))
+    parser.add_argument("--feedback-db", type=Path, default=Path("airflow_incidents/feedback.sqlite3"))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    server = create_server(args.host, args.port, args.incidents_dir)
-    print(f"Read-only incident view: http://{args.host}:{server.server_port}")
+    server = create_server(args.host, args.port, args.incidents_dir, args.feedback_db)
+    print(f"Incident review view: http://{args.host}:{server.server_port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
