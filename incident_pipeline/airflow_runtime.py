@@ -14,6 +14,7 @@ from typing import Any
 SCENARIOS = {
     "healthy": ("healthy_001", "orders_healthy.csv"),
     "schema_drift": ("failed_001", "orders_renamed_column.csv"),
+    "duplicate_id": ("failed_002", "orders_duplicate_id.csv"),
 }
 TASK_IDS = frozenset({"ingest", "transform", "validate"})
 TASK_STATES = frozenset({"success", "failed"})

@@ -1,4 +1,4 @@
-"""Verify the fixed Milestone 4A healthy and schema-drift Airflow runs."""
+"""Verify the fixed Milestone 4A healthy and failing Airflow runs."""
 
 from __future__ import annotations
 
@@ -26,6 +26,14 @@ CASES = {
         "pipeline_status": "failed",
         "stage_states": {"ingest": "success", "transform": "failed", "validate": "skipped"},
         "validation_status": "skipped",
+    },
+    "duplicate_id": {
+        "logical_date": "2026-09-24 01:30:00.000000",
+        "dag_state": "failed",
+        "task_states": {"ingest": "success", "transform": "success", "validate": "failed"},
+        "pipeline_status": "failed",
+        "stage_states": {"ingest": "success", "transform": "success", "validate": "failed"},
+        "validation_status": "failed",
     },
 }
 
@@ -118,4 +126,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

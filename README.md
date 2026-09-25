@@ -148,7 +148,7 @@ The same pipeline stages now run as the Airflow 3 TaskFlow DAG `orders_daily_pip
 bash scripts/airflow_m4a_smoke.sh
 ```
 
-The smoke run executes one healthy scenario and one schema-drift scenario. The healthy DagRun completes `ingest → transform → validate`; the failure run records `ingest=success`, `transform=failed`, and `validate=upstream_failed`. The failed transform writes its bounded pipeline evidence before raising the task exception. See `airflow/README.md` and `airflow/results/m4a_verification.json`.
+The smoke run executes one healthy scenario and two distinct failures. The schema-drift run fails at transform; the duplicate-ID run has the correct schema, completes transform, and fails the uniqueness check at validate. Each failed task writes its bounded pipeline evidence before raising the task exception. See `airflow/README.md` and `airflow/results/m4a_verification.json`.
 
 ## Airflow failure handoff — Milestone 4B
 
@@ -158,7 +158,7 @@ Each executed task has a thin failure callback. It writes only the DAG ID, Airfl
 bash scripts/airflow_m4b_smoke.sh
 ```
 
-The smoke run intentionally processes the event twice and verifies that the failed task produces one event and one report. It uses the offline deterministic adapter, makes zero model API calls, and makes no pipeline changes. Generated events and reports stay under ignored `airflow_incidents/`; the normalized verification result is checked in at `airflow/results/m4b_verification.json`.
+The smoke run creates one schema-drift incident and one duplicate-ID data-quality incident. It intentionally processes the events twice and verifies that each failed task produces one event and one report. It uses the offline deterministic adapter, makes zero model API calls, and makes no pipeline changes. Generated events and reports stay under ignored `airflow_incidents/`; the normalized verification result is checked in at `airflow/results/m4b_verification.json`.
 
 ## Read-only incident view — Milestone 5A
 

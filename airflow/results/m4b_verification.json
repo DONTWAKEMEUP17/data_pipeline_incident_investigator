@@ -1,5 +1,4 @@
 {
-  "agent_adapter": "deterministic-learning-adapter",
   "airflow_version": "3.3.2",
   "callback_payload_fields": [
     "airflow_run_id",
@@ -9,22 +8,46 @@
     "task_id",
     "try_number"
   ],
+  "cases": {
+    "duplicate_id": {
+      "agent_adapter": "deterministic-learning-adapter",
+      "changes_made": false,
+      "dag_state": "failed",
+      "events_for_failed_attempt": 1,
+      "failed_task": "validate",
+      "model_api_calls": 0,
+      "reports_for_failed_attempt": 1,
+      "root_cause_category": "data_quality",
+      "task_states": {
+        "ingest": "success",
+        "transform": "success",
+        "validate": "failed"
+      },
+      "uncertainty": "low"
+    },
+    "schema_drift": {
+      "agent_adapter": "deterministic-learning-adapter",
+      "changes_made": false,
+      "dag_state": "failed",
+      "events_for_failed_attempt": 1,
+      "failed_task": "transform",
+      "model_api_calls": 0,
+      "reports_for_failed_attempt": 1,
+      "root_cause_category": "schema_drift",
+      "task_states": {
+        "ingest": "success",
+        "transform": "failed",
+        "validate": "upstream_failed"
+      },
+      "uncertainty": "low"
+    }
+  },
   "changes_made": false,
   "dag_id": "orders_daily_pipeline",
-  "dag_state": "failed",
-  "events_for_failed_attempt": 1,
   "evidence_provider": "AirflowEvidenceProvider",
   "handoff": "identifier_only_failure_event",
   "idempotency_verified": true,
   "milestone": "4B",
   "model_api_calls": 0,
-  "reports_for_failed_attempt": 1,
-  "root_cause_category": "schema_drift",
-  "separate_investigator_process": true,
-  "task_states": {
-    "ingest": "success",
-    "transform": "failed",
-    "validate": "upstream_failed"
-  },
-  "uncertainty": "low"
+  "separate_investigator_process": true
 }

@@ -24,6 +24,18 @@ if [[ "$failed_exit" -eq 0 ]]; then
   exit 1
 fi
 
+set +e
+docker compose -f "$compose_file" run --rm airflow \
+  airflow dags test orders_daily_pipeline 2026-09-24T03:00:00+00:00 \
+  -c '{"scenario":"duplicate_id"}'
+duplicate_exit=$?
+set -e
+
+if [[ "$duplicate_exit" -eq 0 ]]; then
+  echo "Expected duplicate-ID DagRun to fail, but it succeeded." >&2
+  exit 1
+fi
+
 .venv/bin/python -m incident_pipeline.airflow_incidents
 .venv/bin/python -m incident_pipeline.airflow_incidents
 .venv/bin/python scripts/verify_airflow_m4b.py

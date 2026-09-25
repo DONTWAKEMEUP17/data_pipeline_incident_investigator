@@ -22,10 +22,11 @@ This is a local development setup with SQLite metadata. It is not a production A
 ingest → transform → validate
 ```
 
-The DAG accepts two allowlisted synthetic scenarios through run configuration:
+The DAG accepts three allowlisted synthetic scenarios through run configuration:
 
 - `healthy` uses `healthy_001` and completes all three tasks.
 - `schema_drift` uses `failed_001`; transform saves the mismatch evidence and then raises `PipelineStageError`. Airflow marks transform failed and validate upstream-failed.
+- `duplicate_id` uses `failed_002`; it has the expected schema, transform succeeds, and validate raises `PipelineStageError` after the order-ID uniqueness check fails.
 
 Each Airflow run receives a separate artifact directory. `airflow_run.json` records the DAG ID, Airflow run ID, scenario, pipeline run ID, and task attempts. Runtime databases, logs, and generated pipeline artifacts are ignored by Git.
 
@@ -63,8 +64,8 @@ The first run downloads the official Airflow image. The script then:
 2. Migrates a local SQLite metadata database.
 3. Serializes the DAG and checks import errors.
 4. Runs the healthy scenario.
-5. Runs the schema-drift scenario and requires it to fail.
-6. Verifies Airflow metadata and saved pipeline artifacts.
+5. Runs the schema-drift and duplicate-ID scenarios and requires both to fail at their expected stages.
+6. Verifies Airflow metadata and saved pipeline artifacts for all three scenarios.
 
 The normalized result is written to `airflow/results/m4a_verification.json`. The test uses Airflow's `dags test` integration path: real task callables execute and Airflow records DagRun/task states, but no long-running scheduler or browser UI is started in this milestone.
 
@@ -74,7 +75,7 @@ The normalized result is written to `airflow/results/m4a_verification.json`. The
 bash scripts/airflow_m4b_smoke.sh
 ```
 
-This script causes a real transform failure, checks that Airflow invokes the callback, then launches the investigator worker as a separate process. It runs the worker twice to verify idempotency. The checked-in normalized result is `airflow/results/m4b_verification.json`; runtime events, artifacts, and reports are ignored.
+This script causes a real schema-drift transform failure and a duplicate-ID validation failure, checks that Airflow invokes each callback, then launches the investigator worker as a separate process. It runs the worker twice to verify idempotency. The resulting reports are classified as `schema_drift` and `data_quality`. The checked-in normalized result is `airflow/results/m4b_verification.json`; runtime events, artifacts, and reports are ignored.
 
 The reproducible smoke path uses the offline deterministic adapter, so it needs no API key and spends no model credits. It validates the integration boundary rather than re-measuring the frozen model benchmark.
 

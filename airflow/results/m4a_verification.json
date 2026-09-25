@@ -2,6 +2,21 @@
   "agent_connected": false,
   "airflow_version": "3.3.2",
   "cases": {
+    "duplicate_id": {
+      "dag_state": "failed",
+      "pipeline_status": "failed",
+      "stage_states": {
+        "ingest": "success",
+        "transform": "success",
+        "validate": "failed"
+      },
+      "task_states": {
+        "ingest": "success",
+        "transform": "success",
+        "validate": "failed"
+      },
+      "validation_status": "failed"
+    },
     "healthy": {
       "dag_state": "success",
       "pipeline_status": "success",

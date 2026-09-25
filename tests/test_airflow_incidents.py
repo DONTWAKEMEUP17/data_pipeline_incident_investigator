@@ -15,7 +15,7 @@ from incident_pipeline.airflow_runtime import (
     write_failure_event,
 )
 from incident_pipeline.evidence import AirflowEvidenceProvider
-from incident_pipeline.pipeline import PipelineStageError, ingest_stage, transform_stage
+from incident_pipeline.pipeline import PipelineStageError, ingest_stage, transform_stage, validate_stage
 
 
 class AirflowIncidentTest(unittest.TestCase):
@@ -122,6 +122,57 @@ class AirflowIncidentTest(unittest.TestCase):
         self.assertFalse(manifest["changes_made"])
         self.assertIn("# Incident Report:", report)
         self.assertEqual(before, after)
+
+    def test_worker_diagnoses_duplicate_id_validation_failure_as_data_quality(self):
+        airflow_run_id = "manual__2026-09-24T03:00:00+00:00"
+        descriptor = build_run_descriptor(
+            "orders_daily_pipeline",
+            airflow_run_id,
+            "duplicate_id",
+            self.artifacts,
+        )
+        ingest_stage(
+            descriptor["pipeline_run_id"],
+            descriptor["input_name"],
+            Path(descriptor["output_dir"]),
+        )
+        record_task_attempt(descriptor, "ingest", 1, "success")
+        transform_stage(
+            descriptor["pipeline_run_id"],
+            Path(descriptor["output_dir"]),
+            raise_on_failure=True,
+        )
+        record_task_attempt(descriptor, "transform", 1, "success")
+        with self.assertRaises(PipelineStageError):
+            validate_stage(
+                descriptor["pipeline_run_id"],
+                Path(descriptor["output_dir"]),
+                raise_on_failure=True,
+            )
+        record_task_attempt(descriptor, "validate", 1, "failed")
+        context = {
+            "dag": SimpleNamespace(dag_id="orders_daily_pipeline"),
+            "run_id": airflow_run_id,
+            "task_instance": SimpleNamespace(
+                run_id=airflow_run_id,
+                task_id="validate",
+                try_number=1,
+            ),
+        }
+        event = build_failure_event(context)
+        write_failure_event(event, self.events)
+
+        result = process_failure_events(self.events, self.artifacts, self.incidents)
+
+        investigation = json.loads(
+            (self.incidents / event["event_id"] / "investigation.json").read_text()
+        )
+        report = investigation["report"]
+        self.assertEqual(result["processed"], [event["event_id"]])
+        self.assertEqual(report["root_cause_category"], "data_quality")
+        self.assertEqual(report["uncertainty"], "low")
+        self.assertTrue(any("duplicate" in item["claim"].lower() for item in report["evidence_references"]))
+        self.assertFalse(report["changes_made"])
 
     def test_bad_event_isolated_from_valid_incident(self):
         _, event = self._failed_run()

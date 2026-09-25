@@ -45,6 +45,31 @@ class AirflowRuntimeTest(unittest.TestCase):
         self.assertEqual(summary["stages"]["transform"]["status"], "failed")
         self.assertEqual(summary["stages"]["validate"]["status"], "skipped")
 
+    def test_duplicate_id_scenario_fails_validation_after_successful_transform(self):
+        descriptor = build_run_descriptor(
+            "orders_daily_pipeline",
+            "manual__2026-09-24T01:30:00+00:00",
+            "duplicate_id",
+            self.root,
+        )
+        ingest_stage(descriptor["pipeline_run_id"], descriptor["input_name"], Path(descriptor["output_dir"]))
+        transform_stage(descriptor["pipeline_run_id"], Path(descriptor["output_dir"]), raise_on_failure=True)
+
+        with self.assertRaisesRegex(PipelineStageError, "validation failed") as raised:
+            validate_stage(descriptor["pipeline_run_id"], Path(descriptor["output_dir"]), raise_on_failure=True)
+
+        run_dir = Path(descriptor["output_dir"]) / descriptor["pipeline_run_id"]
+        summary = json.loads((run_dir / "summary.json").read_text())
+        validation = json.loads((run_dir / "validation.json").read_text())
+        self.assertEqual(raised.exception.stage, "validate")
+        self.assertEqual(summary["stages"]["transform"]["status"], "success")
+        self.assertEqual(summary["stages"]["validate"]["status"], "failed")
+        self.assertEqual(validation["status"], "failed")
+        self.assertEqual(
+            [check["name"] for check in validation["checks"] if not check["passed"]],
+            ["order_ids_unique"],
+        )
+
     def test_descriptor_is_allowlisted_and_airflow_identity_records_failed_attempt(self):
         descriptor = build_run_descriptor(
             "orders_daily_pipeline",
