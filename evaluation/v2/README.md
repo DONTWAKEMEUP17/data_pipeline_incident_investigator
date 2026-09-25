@@ -1,16 +1,12 @@
-# Benchmark v2 / 第二版评估
+# Benchmark v2
 
-## Purpose / 目的
+## Purpose
 
 Benchmark v1 is useful for testing the agent loop, but descriptive check names such as `order_ids_unique` let a fixed mapping infer the broad category. V2 removes that shortcut. Validation checks use neutral identifiers such as `gate_02` and `gate_17`, and the same `gate_17` appears in join/reference, freshness/volume, and ambiguous cases.
 
-Benchmark v1 适合验证 agent loop，但 `order_ids_unique` 这类名字几乎直接透露 category。V2 使用 `gate_02`、`gate_17` 等中性名称，而且同一个 `gate_17` 会出现在不同 failure family 中。
-
 V2 contains 18 deterministic synthetic cases with seed `20260923`: 12 development cases and 6 heldout cases. Each broad family has a heldout case. Labels and scoring rules live in `cases.json` and Python case specifications; they are never included in a run artifact or agent observation.
 
-V2 有 18 个固定合成案例：12 个 development、6 个 heldout。标签只供 scorer 使用，不会传给 evidence provider 或 agent。
-
-## What changed / 改了什么
+## What changed
 
 - **Neutral check names:** a check ID no longer maps directly to a category.
 - **Shared symptoms:** similar failed gates can have different causes.
@@ -18,13 +14,7 @@ V2 有 18 个固定合成案例：12 个 development、6 个 heldout。标签只
 - **Required evidence:** each cause lists the tool outputs needed to support it, such as `profile_table` or `read_stage_log` plus `sample_rows`.
 - **Heldout lock:** the evaluator defaults to development and requires `--unlock-heldout` before it will run heldout cases.
 
-- **中性 check name**：不能只靠名字分类。
-- **共享 symptom**：相同 failed gate 可以来自不同原因。
-- **具体 cause label**：区分 broad category 与 underlying cause。
-- **必要 evidence**：报告必须引用真正支持原因的工具结果。
-- **Heldout lock**：默认只运行 development；heldout 需要显式解锁。
-
-## Metrics / 指标
+## Metrics
 
 - **Category accuracy:** broad report category matches the label.
 - **Cause accuracy:** the report explanation contains all required cause concepts. Each concept may have several accepted phrases.
@@ -34,9 +24,7 @@ V2 有 18 个固定合成案例：12 个 development、6 个 heldout。标签只
 
 Cause accuracy is a deterministic keyword heuristic, not a semantic judge. It is inspectable and reproducible, but paraphrases outside the accepted term groups may be marked wrong. A later evaluator can replace this scorer without changing the artifacts.
 
-Cause accuracy 使用可复现的 keyword heuristic，并不是完整 semantic judge。它的优点是透明，限制是某些合理的同义改写可能被判错。
-
-## Local development result / 本地 development 结果
+## Local development result
 
 No API was called. The saved result contains only the 12 development cases.
 
@@ -50,9 +38,7 @@ No API was called. The saved result contains only the 12 development cases.
 
 The lower category scores are expected: generic check IDs break the v1 name-to-category mapping. The deterministic agent was designed for the original named checks, so this result is a pre-tuning baseline rather than a product-quality score.
 
-低分是预期结果。它说明 v1 shortcut 已失效，也为之后使用 development cases 改进 investigation policy 留下了诚实的 baseline。
-
-## Reproduce / 复现
+## Reproduce
 
 ```sh
 # Generate all deterministic artifacts and the external label manifest.
@@ -75,13 +61,9 @@ The lower category scores are expected: generic check IDs break the v1 name-to-c
 
 Do not use `--unlock-heldout` while tuning. The six heldout cases were run once only after the prompt and scorer were frozen, as recorded below.
 
-调参期间不要使用 `--unlock-heldout`。六个 heldout cases 只在 prompt 和 scorer 冻结后运行了一次，结果记录如下。
-
-## Initial Terra development sample / Terra 初始样本
+## Initial Terra development sample
 
 The unchanged prompt fingerprint `12655904bc19` was run once on four representative development cases: `eval2_d001`, `eval2_d003`, `eval2_d007`, and `eval2_d012`. Every case used the full four-call budget. No case was rerun, and no heldout case was evaluated.
-
-使用未修改的 prompt 对四个 development cases 各运行一次。每个 case 都使用了完整的四次 API-call budget；没有重跑错误，也没有运行 heldout。
 
 | Metric | Symptom baseline | Terra agent |
 | --- | ---: | ---: |
@@ -105,19 +87,15 @@ Per-case review:
 
 The sample does not yet justify a general router. It points first to a narrower tool-selection policy for opaque validation failures, a clearer category definition for stale reference data, and a stopping policy that avoids an extra anomaly-search call when the report is already grounded.
 
-这个样本暂时不能证明需要完整 router。更直接的问题是 tool selection、category taxonomy 和 stopping policy。
-
 The exact unchanged snapshot is `results/openai_development_sample_initial.json`. Exact dollar cost remains `null`; the adapter records calls and tokens without hard-coding model pricing.
 
-## After taxonomy, tool-policy, and stopping changes / Policy 修改后
+## After taxonomy, tool-policy, and stopping changes
 
 Prompt fingerprint `a1d6208621a5` introduced three development-only policy changes:
 
 1. Stale reference data used by a lookup belongs to `join_reference`; `freshness_volume` is reserved for the primary input batch.
 2. After a successful transform and opaque validation failure, read the validation log and then profile `orders_daily` when the log is inconclusive. Compare schema only when transform failed or evidence suggests a contract mismatch.
 3. Finish when the primary cause is grounded. Remaining budget alone does not justify searching for an additional anomaly.
-
-修改只涉及 prompt policy；v2 artifacts、labels 和 heldout cases 没有改变。
 
 The same four-case sample was run once after the change:
 
@@ -155,8 +133,6 @@ The only category/behavior error is `eval2_d008`: Terra described lowercase `c-1
 
 Manual review also found that the current evidence-sufficiency metric is too tool-specific. Four reports cited evidence that already contained the exact schema order, invalid amount value, input dates, or row-count threshold, but the scorer required an extra prescribed tool. Similarly, the automated cause scorer missed date-based explanations that did not contain an accepted adjective. These raw deterministic scores remain preserved. Before heldout evaluation, the scorer should be revised on development data to accept alternative evidence paths and then versioned separately.
 
-自动指标保留原始结果，没有为了提高分数而重写。人工检查认为 12 个报告的具体 cause 都有依据；真正剩余的 policy disagreement 是 `eval2_d008` 的单标签 taxonomy。
-
 Saved snapshots:
 
 - `results/openai_development_sample_after_policy.json`
@@ -174,7 +150,7 @@ Reproduce the merge without API calls:
 
 At this stage of the chronology, v2 heldout had not yet been evaluated. Exact dollar cost remains `null` because pricing is not hard-coded.
 
-## Scorer v2.1 / 内容证据评分
+## Scorer v2.1: content-based evidence scoring
 
 The original scorer treated one prescribed tool list as the only sufficient evidence path and used one keyword path for each cause. Development review showed false negatives: a summary or log could already contain the exact values needed for the conclusion, and two explicit dates could establish staleness without the adjective “stale.”
 
@@ -185,8 +161,6 @@ Scorer revision `content-entailment-v2.1` makes these changes without calling a 
 - It allows several deterministic phrase paths for the same cause, such as `stale reference` or the old snapshot date plus the current batch date and missing refresh.
 - It accepts a complete summary or log as sufficient; it does not require an extra profile or sample merely because a specific tool was listed in the original case design.
 - It records `scorer_revision` in every new result, and the merger rejects incompatible scorer revisions.
-
-V2.1 仍然是透明、确定的 heuristic，而不是 LLM judge。它减少了对单个关键词和固定 tool sequence 的依赖，但仍不能理解任意自然语言。
 
 The saved model traces were rescored locally. Original result files remain unchanged.
 
@@ -226,7 +200,7 @@ Rescore saved results with no API calls:
 
 The canonical v2.1 development result before the final taxonomy clarification is `results/openai_development_after_policy_scorer_v2_1.json`.
 
-## Frozen prompt and one-time heldout result / 冻结后的 heldout 结果
+## Frozen prompt and one-time heldout result
 
 The final development-only clarification assigns casing or surrounding-whitespace mismatches to `join_reference` when the value fails only relative to the canonical lookup representation. A value that is invalid independently of lookup remains `data_quality`. Prompt fingerprint `f3673a8d69f1` and scorer revision `content-entailment-v2.1` were then frozen.
 
@@ -251,9 +225,7 @@ Saved snapshots:
 - `results/openai_eval2_d008_after_taxonomy.json`
 - `results/openai_heldout_frozen.json`
 
-复核结果：Terra 在 heldout 的 6 个案例中有 5 个 category 正确，所有 6 个案例都找到了具体原因并引用了有效、充分的证据。唯一分歧是 weekend threshold 案例；结果按首次运行原样保留，没有重跑或针对 heldout 调参。
-
-## Sandboxed remediation proposal / 修复建议
+## Sandboxed remediation proposal
 
 `incident_pipeline.remediation` turns the `eval2_d008` diagnosis into a concrete, reviewable candidate. It reads `orders_daily` from the saved database in read-only mode and evaluates fixed normalization expressions in an in-memory DuckDB database against `fixtures/customer_reference.csv`.
 
